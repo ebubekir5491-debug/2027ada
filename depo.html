@@ -134,7 +134,7 @@
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let auth = null;
         let db = null;
@@ -176,8 +176,27 @@
         });
 
         // Firestore'dan sadece "Tamamlandı" durumundaki satınalma taleplerini çekip depoda birleştirme
-        function loadDepoStoklari() {
+        async function loadDepoStoklari() {
             try {
+                // Tanımlı ürünler (görsel ve orijinal isimler) için cache çekelim
+                let tanimliUrunlerMap = {};
+                try {
+                    const tanimliSnap = await getDocs(collection(db, "tanimli_urunler"));
+                    tanimliSnap.forEach(docSnap => {
+                        const tData = docSnap.data();
+                        if (tData.urunKodu) {
+                            tanimliUrunlerMap[tData.urunKodu] = {
+                                urunTanimi: tData.urunTanimi,
+                                malGrubu: tData.malGrubu,
+                                olcuBirimi: tData.olcuBirimi,
+                                gorsel: tData.gorsel || ""
+                            };
+                        }
+                    });
+                } catch (e) {
+                    console.log("Tanımlı ürünler yüklenemedi, normal devam ediliyor.");
+                }
+
                 const q = query(collection(db, "satinalma_talepleri"), where("durum", "==", "Tamamlandı"));
                 
                 onSnapshot(q, (snapshot) => {
@@ -196,17 +215,32 @@
                                 const teslimMiktar = Number(kalem.teslimAlinan !== undefined ? kalem.teslimAlinan : kalem.miktar);
                                 const tutar = Number(kalem.toplamTutar || 0);
 
+                                // Eğer tanımlı ürünlerden orijinal bilgi varsa onu baz alalım, yoksa kalemdekinden alalım
+                                const tanimliInfo = tanimliUrunlerMap[kod] || {};
+                                const finalTanimi = tanimliInfo.urunTanimi || kalem.urunTanimi || kod;
+                                const finalMalGrubu = tanimliInfo.malGrubu || kalem.malGrubu || "HAM MALZEME";
+                                const finalBirim = tanimliInfo.olcuBirimi || kalem.olcuBirimi || "ADET";
+                                const finalGorsel = tanimliInfo.gorsel || kalem.gorsel || "";
+
                                 if (!consolidatedDepoData[kod]) {
                                     consolidatedDepoData[kod] = {
                                         urunKodu: kod,
-                                        urunTanimi: kalem.urunTanimi,
-                                        malGrubu: kalem.malGrubu,
-                                        olcuBirimi: kalem.olcuBirimi,
-                                        gorsel: kalem.gorsel || "",
+                                        urunTanimi: finalTanimi,
+                                        malGrubu: finalMalGrubu,
+                                        olcuBirimi: finalBirim,
+                                        gorsel: finalGorsel,
                                         toplamStok: 0,
                                         toplamHarcama: 0,
                                         hareketler: []
                                     };
+                                } else {
+                                    // Eğer daha önce boş veya sarfiyat adı yazıldıysa ama şimdi orijinal tanımlı ürün adı varsa güncelleyelim
+                                    if (tanimliInfo.urunTanimi) {
+                                        consolidatedDepoData[kod].urunTanimi = tanimliInfo.urunTanimi;
+                                        consolidatedDepoData[kod].malGrubu = tanimliInfo.malGrubu;
+                                        consolidatedDepoData[kod].olcuBirimi = tanimliInfo.olcuBirimi;
+                                        if (tanimliInfo.gorsel) consolidatedDepoData[kod].gorsel = tanimliInfo.gorsel;
+                                    }
                                 }
 
                                 consolidatedDepoData[kod].toplamStok += teslimMiktar;
@@ -217,7 +251,7 @@
                                     olusturan: olusturan,
                                     miktar: teslimMiktar,
                                     tutar: tutar,
-                                    olcuBirimi: kalem.olcuBirimi
+                                    olcuBirimi: finalBirim
                                 });
                             });
                         }
