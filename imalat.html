@@ -28,6 +28,12 @@
             -webkit-backdrop-filter: blur(16px);
         }
         .active-scale:active { transform: scale(0.96); }
+
+        @media print {
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-area { display: block !important; width: 100%; position: absolute; top: 0; left: 0; background: white; color: black; }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative overflow-x-hidden border-x border-slate-800/50 shadow-2xl">
@@ -42,7 +48,7 @@
     </div>
 
     <!-- HEADER -->
-    <header class="p-3 pt-5 glass-card border-b border-slate-800 sticky top-0 z-30">
+    <header class="p-3 pt-5 glass-card border-b border-slate-800 sticky top-0 z-30 no-print">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <a href="index.html" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
@@ -57,7 +63,6 @@
                 </div>
             </div>
 
-            <!-- ÜST KÖŞE REÇETE BUTONU -->
             <div class="flex items-center space-x-2">
                 <a href="imalatrecetesi.html" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold rounded-xl border border-slate-700 flex items-center gap-1 transition-all active-scale shadow-sm">
                     <i class="fa-solid fa-file-invoice text-indigo-400"></i>
@@ -71,7 +76,7 @@
     </header>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-3">
+    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-3 no-print">
         
         <div class="flex items-center justify-between pt-1">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Üretime Alınan Siparişler</h3>
@@ -89,7 +94,7 @@
     </main>
 
     <!-- DETAY MODALI -->
-    <div id="detayModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-3 hidden overflow-y-auto">
+    <div id="detayModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-3 hidden overflow-y-auto no-print">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-lg shadow-2xl space-y-3 my-auto">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 class="font-bold text-slate-100 text-xs flex items-center gap-1.5">
@@ -104,22 +109,37 @@
         </div>
     </div>
 
+    <!-- İMALAT FORMU YAZDIRMA MODALI (A4 YATAY) -->
+    <div id="printModal" class="fixed inset-0 z-50 bg-slate-950/90 flex flex-col items-center justify-center p-2 hidden overflow-auto">
+        <div class="bg-white text-slate-900 w-full max-w-5xl rounded-2xl p-6 shadow-2xl space-y-4 my-auto relative">
+            <div class="flex justify-between items-center border-b pb-3 no-print">
+                <h3 class="font-bold text-lg text-indigo-900"><i class="fa-solid fa-print"></i> İmalat Formu Önizleme (A4 Yatay)</h3>
+                <div class="flex space-x-2">
+                    <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700"><i class="fa-solid fa-print"></i> Yazdır</button>
+                    <button onclick="document.getElementById('printModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-xl text-xs font-bold hover:bg-slate-300">Kapat</button>
+                </div>
+            </div>
+
+            <!-- TABLO ALANI -->
+            <div id="printModalBody" class="overflow-x-auto text-[11px]"></div>
+        </div>
+    </div>
+
     <!-- FIREBASE & SCRIPT -->
     <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy, deleteDoc, updateDoc, addDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, deleteDoc, updateDoc, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let auth = null;
         let db = null;
         let imalatCache = {};
+        let imalatReceteleriCache = [];
+        let authChecked = false;
 
         async function initApp() {
-            if (typeof firebaseConfig === 'undefined') {
-                document.getElementById('loadingSubText').textContent = "firebase-config.js bulunamadı!";
-                return;
-            }
+            if (typeof firebaseConfig === 'undefined') { return; }
 
             try {
                 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
@@ -127,28 +147,45 @@
                 db = getFirestore(app);
 
                 onAuthStateChanged(auth, (user) => {
-                    document.getElementById('authCheckOverlay').classList.add('hidden');
-                    if (user) {
-                        document.getElementById('userEmailTag').textContent = user.email;
+                    if (!authChecked) {
+                        authChecked = true;
+                        document.getElementById('authCheckOverlay').classList.add('hidden');
+                        if (user) { document.getElementById('userEmailTag').textContent = user.email; }
+                        loadImalatListesi();
+                        loadImalatReceteleri();
                     }
-                    loadImalatListesi();
                 });
 
                 setTimeout(() => {
-                    document.getElementById('authCheckOverlay').classList.add('hidden');
-                    loadImalatListesi();
+                    if (!authChecked) {
+                        authChecked = true;
+                        document.getElementById('authCheckOverlay').classList.add('hidden');
+                        loadImalatListesi();
+                        loadImalatReceteleri();
+                    }
                 }, 3000);
 
             } catch (err) {
                 console.error("Init error:", err);
                 document.getElementById('authCheckOverlay').classList.add('hidden');
                 loadImalatListesi();
+                loadImalatReceteleri();
             }
         }
 
         document.getElementById('btnLogout').addEventListener('click', async () => {
             if (auth) { await signOut(auth); window.location.href = "index.html"; }
         });
+
+        async function loadImalatReceteleri() {
+            try {
+                const snap = await getDocs(collection(db, "imalat_receteleri"));
+                imalatReceteleriCache = [];
+                snap.forEach(d => imalatReceteleriCache.push(d.data()));
+            } catch (e) {
+                console.error("İmalat reçeteleri yüklenemedi:", e);
+            }
+        }
 
         function loadImalatListesi() {
             try {
@@ -207,13 +244,9 @@
                                     </div>
                                     <div class="flex items-center space-x-1">
                                         ${!isIptal ? `
-                                            <button type="button" onclick="window.iptalEtSiparis('${docId}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-semibold transition-all active-scale" title="İptal Et & Depoya İade Et">
-                                                İptal Et
-                                            </button>
+                                            <button type="button" onclick="window.iptalEtSiparis('${docId}')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-semibold transition-all active-scale" title="İptal Et">İptal</button>
                                         ` : ''}
-                                        <button type="button" onclick="window.deleteImalatSiparis('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Tamamen Sil">
-                                            <i class="fa-solid fa-trash-can text-xs"></i>
-                                        </button>
+                                        <button type="button" onclick="window.deleteImalatSiparis('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Sil"><i class="fa-solid fa-trash-can text-xs"></i></button>
                                     </div>
                                 </div>
 
@@ -222,10 +255,14 @@
                                     ${kalemlerOzet}
                                 </div>
 
-                                <div class="flex items-center justify-between pt-1">
-                                    <span class="text-[10px] text-slate-400">Oluşturan: <strong class="text-slate-300">${data.olusturan || 'Kullanıcı'}</strong></span>
-                                    <button type="button" onclick="window.openDetayModal('${docId}')" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-xl text-[10px] font-semibold transition-all active-scale">
-                                        Detayları Gör <i class="fa-solid fa-chevron-right ml-1"></i>
+                                <div class="flex items-center justify-between pt-1 gap-2">
+                                    ${!isIptal ? `
+                                        <button type="button" onclick="window.openImalatFormu('${docId}')" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold shadow-md transition-all active-scale flex items-center justify-center gap-1">
+                                            <i class="fa-solid fa-file-lines"></i> İmalat Formu Oluştur
+                                        </button>
+                                    ` : ''}
+                                    <button type="button" onclick="window.openDetayModal('${docId}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-[10px] font-semibold transition-all active-scale">
+                                        Detay <i class="fa-solid fa-chevron-right ml-0.5"></i>
                                     </button>
                                 </div>
                             </div>
@@ -237,6 +274,114 @@
                 console.error("İmalat listesi yükleme hatası:", e);
             }
         }
+
+        function evalFormul(expression, EN, BOY, ADET) {
+            try {
+                let expr = expression.toUpperCase();
+                expr = expr.replace(/EN/g, EN);
+                expr = expr.replace(/BOY/g, BOY);
+                expr = expr.replace(/ADET/g, ADET);
+                return Math.round(Function(`'use strict'; return (${expr})`)() * 100) / 100;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        window.openImalatFormu = function(id) {
+            const data = imalatCache[id];
+            if (!data) return;
+
+            let rowsHtml = "";
+            let sira = 1;
+
+            if (data.kalemler && Array.isArray(data.kalemler)) {
+                data.kalemler.forEach(k => {
+                    const en = Number(k.en || 0);
+                    const boy = Number(k.boy || 0);
+                    const adet = Number(k.adet || 1);
+
+                    // Reçeteden ilgili ürüne ait imalat formüllerini bulalım
+                    let receteObj = imalatReceteleriCache.find(r => r.urunId === k.urunId || r.urunTanimi === k.urunTanimi);
+                    
+                    let kasaEn = en, kasaBoy = boy, kasaAdet = adet;
+                    let kanatBoy = boy, kanatAdet = adet;
+                    let tulTip = k.tul || "STANDART", tulEn = en, tulAdet = adet;
+                    let ipBoy = boy, ipAdet = 4, ipAraligi = "15 cm";
+
+                    if (receteObj && receteObj.recete) {
+                        receteObj.recete.forEach(rec => {
+                            let val = evalFormul(rec.formul, en, boy, adet);
+                            let mAdi = rec.malzemeAdi.toUpperCase();
+                            if (mAdi.includes("KASA EN")) kasaEn = val;
+                            if (mAdi.includes("KASA BOY")) kasaBoy = val;
+                            if (mAdi.includes("KANAT")) kanatBoy = val;
+                            if (mAdi.includes("TÜL") || mAdi.includes("TUL")) tulEn = val;
+                            if (mAdi.includes("İP") || mAdi.includes("IP")) ipBoy = val;
+                        });
+                    }
+
+                    rowsHtml += `
+                        <tr class="border-b text-center">
+                            <td class="p-2 border">${sira++}</td>
+                            <td class="p-2 border font-bold text-left">${k.urunTanimi}</td>
+                            <td class="p-2 border">${k.en}</td>
+                            <td class="p-2 border">${k.boy}</td>
+                            <td class="p-2 border">${k.adet}</td>
+                            <td class="p-2 border">${k.renk || '-'}</td>
+                            <td class="p-2 border">${k.eklenti || '-'}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${k.en}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${k.boy}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${kanatBoy}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
+                            <td class="p-2 border">${tulTip}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${k.en}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
+                            <td class="p-2 border font-mono bg-slate-50">${ipBoy}</td>
+                            <td class="p-2 border font-mono bg-slate-50">4</td>
+                            <td class="p-2 border">15 cm</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const printBody = document.getElementById('printModalBody');
+            printBody.innerHTML = `
+                <div class="mb-4 text-center">
+                    <h2 class="text-xl font-extrabold uppercase">İMALAT ÜRETİM FORMU</h2>
+                    <p class="text-xs text-slate-600">Sipariş Kodu: <strong>${data.siparisKodu}</strong> | Tarih: ${new Date().toLocaleDateString('tr-TR')}</p>
+                </div>
+                <table class="w-full border-collapse border border-slate-400 text-[10px]">
+                    <thead>
+                        <tr class="bg-slate-200 text-slate-800 uppercase">
+                            <th class="border p-1.5">Sıra</th>
+                            <th class="border p-1.5">Ürün Tanımı</th>
+                            <th class="border p-1.5">Sip. En</th>
+                            <th class="border p-1.5">Sip. Boy</th>
+                            <th class="border p-1.5">Adet</th>
+                            <th class="border p-1.5">Renk</th>
+                            <th class="border p-1.5">Eklenti</th>
+                            <th class="border p-1.5 bg-indigo-100">Kasa En</th>
+                            <th class="border p-1.5 bg-indigo-100">Kasa Boy</th>
+                            <th class="border p-1.5 bg-indigo-100">Kasa Ad.</th>
+                            <th class="border p-1.5 bg-indigo-100">Kanat Boy</th>
+                            <th class="border p-1.5 bg-indigo-100">Kanat Ad.</th>
+                            <th class="border p-1.5 bg-emerald-100">Tül Tipi</th>
+                            <th class="border p-1.5 bg-emerald-100">Tül En</th>
+                            <th class="border p-1.5 bg-emerald-100">Tül Ad.</th>
+                            <th class="border p-1.5 bg-amber-100">İp Boy</th>
+                            <th class="border p-1.5 bg-amber-100">İp Ad.</th>
+                            <th class="border p-1.5 bg-amber-100">İp Aralık</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('printModal').classList.remove('hidden');
+        };
 
         window.openDetayModal = function(id) {
             const data = imalatCache[id];
@@ -273,10 +418,6 @@
                                 <span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded">${k.renk}</span>
                                 ${eklentiBadge}
                             </div>
-                            <div class="space-y-1 pt-1 border-t border-slate-800/80">
-                                <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Gerekli Malzemeler:</span>
-                                ${malzemelerDetay}
-                            </div>
                         </div>
                     `;
                 });
@@ -289,11 +430,10 @@
             const data = imalatCache[id];
             if (!data) return;
 
-            if (!confirm(`Sipariş Kodu: ${data.siparisKodu}\nBu siparişi iptal etmek ve harcanan malzemeleri DEPOYA GERİ YÜKLEMEK istediğinize emin misiniz?`)) return;
+            if (!confirm(`Sipariş Kodu: ${data.siparisKodu}\nBu siparişi iptal etmek ve kullanılan malzemeleri depoya geri yüklemek istediğinize emin misiniz?`)) return;
 
             try {
                 let toplamKullanilanMalzemeler = {};
-
                 if (data.kalemler && Array.isArray(data.kalemler)) {
                     data.kalemler.forEach(item => {
                         if (item.hesaplananMalzemeler && Array.isArray(item.hesaplananMalzemeler)) {
@@ -327,24 +467,15 @@
                     });
                 }
 
-                await updateDoc(doc(db, "tamamlanan_siparisler", id), {
-                    durum: "İPTAL"
-                });
-
-                alert("Sipariş iptal edildi ve kullanılan malzemeler başarıyla depoya geri yüklendi!");
-
+                await updateDoc(doc(db, "tamamlanan_siparisler", id), { durum: "İPTAL" });
+                alert("Sipariş iptal edildi ve malzemeler depoya geri yüklendi!");
             } catch (e) {
-                console.error("İptal etme hatası:", e);
-                alert("Hata oluştu: " + e.message);
+                alert("İptal hatası: " + e.message);
             }
         };
 
-        document.getElementById('btnCloseModal').addEventListener('click', () => {
-            document.getElementById('detayModal').classList.add('hidden');
-        });
-        document.getElementById('btnCloseModalBtn').addEventListener('click', () => {
-            document.getElementById('detayModal').classList.add('hidden');
-        });
+        document.getElementById('btnCloseModal').addEventListener('click', () => document.getElementById('detayModal').classList.add('hidden'));
+        document.getElementById('btnCloseModalBtn').addEventListener('click', () => document.getElementById('detayModal').classList.add('hidden'));
 
         window.deleteImalatSiparis = async function(id) {
             if (confirm("Bu imalat kaydını tamamen silmek istediğinize emin misiniz?")) {
