@@ -68,11 +68,11 @@
         
         <button type="button" id="btnOpenModal" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active-scale text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
             <i class="fa-solid fa-plus text-xs"></i>
-            <span>Yeni Ürün Reçetesi Tanımla</span>
+            <span>Yeni İmalat Reçetesi Tanımla</span>
         </button>
 
         <div class="flex items-center justify-between pt-1 px-1">
-            <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Kayıtlı Reçeteler</h3>
+            <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Kayıtlı İmalat Reçeteleri</h3>
             <span id="receteCount" class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20">0 Reçete</span>
         </div>
 
@@ -92,7 +92,7 @@
             
             <div class="flex justify-between items-center border-b border-slate-800 pb-2.5 flex-shrink-0">
                 <h3 id="modalTitle" class="font-bold text-slate-100 text-xs flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni Reçete Tanımla
+                    <i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni İmalat Reçetesi Tanımla
                 </h3>
                 <button type="button" id="btnCloseModal" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-sm"></i></button>
             </div>
@@ -101,9 +101,9 @@
 
             <div class="space-y-2.5 overflow-y-auto pr-1 flex-1 text-xs">
                 <div>
-                    <label class="text-[10px] text-slate-400 mb-1 block font-semibold">Tanımlı Ürün Seçin (Üretilecek Ana Ürün)</label>
+                    <label class="text-[10px] text-slate-400 mb-1 block font-semibold">Sistemde Ekli Ürün Tanımı Seçin</label>
                     <select id="selectAnaUrun" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
-                        <option value="">-- Ürün Seçiniz --</option>
+                        <option value="">-- Ürün Tanımı Seçiniz --</option>
                     </select>
                 </div>
 
@@ -159,7 +159,6 @@
                     }
                 });
 
-                // 3 saniye içinde auth tetiklenmezse otomatik aç (Güvenlik Zaman Aşımı)
                 setTimeout(() => {
                     if (!authChecked) {
                         authChecked = true;
@@ -181,13 +180,13 @@
             if (auth) { await signOut(auth); window.location.href = "index.html"; }
         });
 
-        // Depodaki / Tanımlı Ürünleri Çekme
+        // SADECE sistemde eklenmiş olan ana Ürün Tanımlarını (tanimli_urunler) Çekme
         async function loadTanimliUrunler() {
             try {
                 const snap = await getDocs(collection(db, "tanimli_urunler"));
                 tanimliUrunlerCache = [];
                 const selectElem = document.getElementById('selectAnaUrun');
-                selectElem.innerHTML = `<option value="">-- Ürün Seçiniz --</option>`;
+                selectElem.innerHTML = `<option value="">-- Ürün Tanımı Seçiniz --</option>`;
 
                 snap.forEach(docSnap => {
                     const u = docSnap.data();
@@ -201,22 +200,22 @@
 
         const modal = document.getElementById('receteModal');
         document.getElementById('btnOpenModal').addEventListener('click', () => {
-            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni Reçete Tanımla`;
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni İmalat Reçetesi Tanımla`;
             document.getElementById('editReceteId').value = "";
             document.getElementById('selectAnaUrun').value = "";
             document.getElementById('formurRowsContainer').innerHTML = "";
-            addFormulaRow(); // Varsayılan 1 satır ekle
+            addFormulaRow();
             modal.classList.remove('hidden');
         });
 
         document.getElementById('btnCloseModal').addEventListener('click', () => modal.classList.add('hidden'));
 
-        // Sonsuz Formül Satırı Ekleme Fonksiyonu
+        // Formül Satırlarında Malzeme Açılır Listesi (Yalnızca Ekli Ürün Tanımlarından Gelir)
         function addFormulaRow(malzemeKodu = "", renk = "", formul = "") {
             const container = document.getElementById('formurRowsContainer');
             const rowId = 'row_' + Math.random().toString(36).substring(2, 9);
 
-            let optionsHtml = `<option value="">-- Malzeme Kodu Seç --</option>`;
+            let optionsHtml = `<option value="">-- Ürün Tanımı Seç --</option>`;
             tanimliUrunlerCache.forEach(u => {
                 let selected = (u.urunKodu === malzemeKodu) ? "selected" : "";
                 optionsHtml += `<option value="${u.urunKodu}" ${selected}>${u.urunKodu} - ${u.urunTanimi}</option>`;
@@ -225,24 +224,24 @@
             const rowHtml = `
                 <div id="${rowId}" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2 relative">
                     <div class="flex justify-between items-center">
-                        <span class="text-[9px] font-mono text-slate-400">Malzeme & Formül Satırı</span>
+                        <span class="text-[9px] font-mono text-slate-400">Formül Kalemi</span>
                         <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-400 hover:text-rose-300 text-[10px] px-1"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[8px] text-slate-400 mb-0.5 block">Malzeme Kodu</label>
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Kullanılacak Malzeme/Ürün</label>
                             <select class="row-malzeme w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500">
                                 ${optionsHtml}
                             </select>
                         </div>
                         <div>
-                            <label class="text-[8px] text-slate-400 mb-0.5 block">Renk Kısıtı (İsteğe Bağlı)</label>
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Renk (Opsiyonel)</label>
                             <input type="text" class="row-renk w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: BEYAZ" value="${renk}">
                         </div>
                     </div>
                     <div>
-                        <label class="text-[8px] text-slate-400 mb-0.5 block">Formül (EN, BOY, ADET kullanın)</label>
-                        <input type="text" class="row-formul w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-indigo-300 font-mono text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: (EN * 2) + BOY - 5" value="${formul}">
+                        <label class="text-[8px] text-slate-400 mb-0.5 block">İmalat Formülü (EN, BOY, ADET ile işlem yazın)</label>
+                        <input type="text" class="row-formul w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-indigo-300 font-mono text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: EN - 2 veya (BOY * 2) + 10" value="${formul}">
                     </div>
                 </div>
             `;
@@ -252,13 +251,13 @@
         window.addFormulaRow = addFormulaRow;
         document.getElementById('btnAddRow').addEventListener('click', () => addFormulaRow());
 
-        // Kaydet / Güncelle
+        // Kaydet / Güncelle (imalat_receteleri koleksiyonuna bağımsız kaydedilir)
         document.getElementById('btnSaveRecete').addEventListener('click', async () => {
             const editId = document.getElementById('editReceteId').value.trim();
             const anaUrunKodu = document.getElementById('selectAnaUrun').value;
 
             if (!anaUrunKodu) {
-                alert("Lütfen üretilecek ana ürünü seçin!");
+                alert("Lütfen ana ürün tanımını seçin!");
                 return;
             }
 
@@ -280,7 +279,7 @@
             });
 
             if (receteKalemleri.length === 0) {
-                alert("Lütfen en az bir geçerli malzeme ve formül satırı ekleyin!");
+                alert("Lütfen en az bir geçerli malzeme ve imalat formülü yazın!");
                 return;
             }
 
@@ -292,14 +291,14 @@
                 document.getElementById('btnSaveRecete').textContent = "Kaydediliyor...";
 
                 if (editId) {
-                    await updateDoc(doc(db, "siparis_urunleri", editId), {
+                    await updateDoc(doc(db, "imalat_receteleri", editId), {
                         urunKodu: anaUrunKodu,
                         urunTanimi: urunTanimi,
                         gorsel: gorsel,
                         recete: receteKalemleri
                     });
                 } else {
-                    await addDoc(collection(db, "siparis_urunleri"), {
+                    await addDoc(collection(db, "imalat_receteleri"), {
                         urunKodu: anaUrunKodu,
                         urunTanimi: urunTanimi,
                         gorsel: gorsel,
@@ -317,9 +316,9 @@
             }
         });
 
-        // Reçeteleri Listeleme
+        // İmalat Reçetelerini Listeleme
         function loadReceteler() {
-            const q = query(collection(db, "siparis_urunleri"), orderBy("urunTanimi"));
+            const q = query(collection(db, "imalat_receteleri"), orderBy("urunTanimi"));
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('receteListContainer');
                 container.innerHTML = "";
@@ -332,8 +331,8 @@
                             <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-base mb-2">
                                 <i class="fa-solid fa-file-invoice"></i>
                             </div>
-                            <h4 class="text-xs font-semibold text-slate-300">Kayıtlı Reçete Yok</h4>
-                            <p class="text-[10px] text-slate-500 mt-0.5">Yukarıdaki butonu kullanarak yeni reçete ekleyin.</p>
+                            <h4 class="text-xs font-semibold text-slate-300">İmalat Reçetesi Bulunamadı</h4>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Yukarıdaki butonu kullanarak yeni imalat reçetesi tanımlayın.</p>
                         </div>
                     `;
                     return;
@@ -376,14 +375,14 @@
                                     <button type="button" onclick="window.editRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-600/20 hover:text-indigo-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Düzenle">
                                         <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                                     </button>
-                                    <button type="button" onclick="window.deleteRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
+                                    <button type="button" onclick="window.deleteRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
                                         <i class="fa-solid fa-trash-can text-[10px]"></i>
                                     </button>
                                 </div>
                             </div>
 
                             <div class="space-y-1 pt-1 border-t border-slate-800/80">
-                                <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Formüller (${data.recete ? data.recete.length : 0}):</span>
+                                <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">İmalat Formülleri (${data.recete ? data.recete.length : 0}):</span>
                                 ${receteSatirlariHtml}
                             </div>
                         </div>
@@ -397,7 +396,7 @@
             const data = receteCache[id];
             if (!data) return;
 
-            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-400"></i> Reçeteyi Düzenle`;
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-400"></i> İmalat Reçetesini Düzenle`;
             document.getElementById('editReceteId').value = id;
             document.getElementById('selectAnaUrun').value = data.urunKodu || "";
             
@@ -414,9 +413,9 @@
         };
 
         window.deleteRecete = async function(id) {
-            if (confirm("Bu reçeteyi silmek istediğinize emin misiniz?")) {
+            if (confirm("Bu imalat reçetesini silmek istediğinize emin misiniz?")) {
                 try {
-                    await deleteDoc(doc(db, "siparis_urunleri", id));
+                    await deleteDoc(doc(db, "imalat_receteleri", id));
                 } catch (err) {
                     alert("Silme hatası: " + err.message);
                 }
