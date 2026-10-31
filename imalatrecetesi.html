@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>İmalat Reçetesi Tanımlama - Mobil İşletme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative overflow-x-hidden border-x border-slate-800/50 shadow-2xl">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="p-3 pt-5 glass-card border-b border-slate-800 sticky top-0 z-30">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <a href="imalat.html" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Geri Dön">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </a>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-invoice text-indigo-400"></i>
+                        <span>İMALAT REÇETELERİ</span>
+                    </h2>
+                    <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[110px]">Kullanıcı</p>
+                </div>
+            </div>
+
+            <button type="button" id="btnLogout" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Çıkış Yap">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-3 pb-24 overflow-y-auto space-y-3">
+        
+        <button type="button" id="btnOpenModal" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active-scale text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Yeni Ürün Reçetesi Tanımla</span>
+        </button>
+
+        <div class="flex items-center justify-between pt-1 px-1">
+            <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Kayıtlı Reçeteler</h3>
+            <span id="receteCount" class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20">0 Reçete</span>
+        </div>
+
+        <div id="receteListContainer" class="space-y-2.5">
+            <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[180px]">
+                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-base mb-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                </div>
+                <h4 class="text-xs font-semibold text-slate-300">Reçeteler Yükleniyor...</h4>
+            </div>
+        </div>
+    </main>
+
+    <!-- REÇETE EKLEME / DÜZENLEME MODALI -->
+    <div id="receteModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-3 hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-md shadow-2xl space-y-3 my-auto max-h-[90vh] flex flex-col">
+            
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5 flex-shrink-0">
+                <h3 id="modalTitle" class="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni Reçete Tanımla
+                </h3>
+                <button type="button" id="btnCloseModal" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <input type="hidden" id="editReceteId" value="">
+
+            <div class="space-y-2.5 overflow-y-auto pr-1 flex-1 text-xs">
+                <div>
+                    <label class="text-[10px] text-slate-400 mb-1 block font-semibold">Tanımlı Ürün Seçin (Üretilecek Ana Ürün)</label>
+                    <select id="selectAnaUrun" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <option value="">-- Ürün Seçiniz --</option>
+                    </select>
+                </div>
+
+                <div class="border-t border-slate-800 pt-2.5 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">Reçete Malzemeleri ve Formüller</span>
+                        <button type="button" id="btnAddRow" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-semibold transition-all active-scale flex items-center gap-1">
+                            <i class="fa-solid fa-plus text-[9px]"></i> Formül Satırı Ekle
+                        </button>
+                    </div>
+
+                    <!-- Sonsuz Formül Satırlarının Eklenme Alanı -->
+                    <div id="formurRowsContainer" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <button type="button" id="btnSaveRecete" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-1.5 active-scale flex-shrink-0 mt-2">
+                <i class="fa-solid fa-check"></i> Reçeteyi Kaydet
+            </button>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot, query, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let tanimliUrunlerCache = [];
+        let receteCache = {};
+
+        async function initApp() {
+            if (typeof firebaseConfig === 'undefined') { window.location.href = "index.html"; return; }
+            const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            onAuthStateChanged(auth, (user) => {
+                document.getElementById('authCheckOverlay').classList.add('hidden');
+                if (user) {
+                    document.getElementById('userEmailTag').textContent = user.email;
+                    loadTanimliUrunler();
+                    loadReceteler();
+                } else {
+                    window.location.href = "index.html";
+                }
+            });
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        });
+
+        // Depodaki / Tanımlı Ürünleri Çekme
+        async function loadTanimliUrunler() {
+            try {
+                const snap = await getDocs(collection(db, "tanimli_urunler"));
+                tanimliUrunlerCache = [];
+                const selectElem = document.getElementById('selectAnaUrun');
+                selectElem.innerHTML = `<option value="">-- Ürün Seçiniz --</option>`;
+
+                snap.forEach(docSnap => {
+                    const u = docSnap.data();
+                    tanimliUrunlerCache.push({ id: docSnap.id, ...u });
+                    selectElem.innerHTML += `<option value="${u.urunKodu}">${u.urunKodu} - ${u.urunTanimi}</option>`;
+                });
+            } catch (err) {
+                console.error("Tanımlı ürünler yüklenemedi:", err);
+            }
+        }
+
+        const modal = document.getElementById('receteModal');
+        document.getElementById('btnOpenModal').addEventListener('click', () => {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-plus text-indigo-400"></i> Yeni Reçete Tanımla`;
+            document.getElementById('editReceteId').value = "";
+            document.getElementById('selectAnaUrun').value = "";
+            document.getElementById('formurRowsContainer').innerHTML = "";
+            addFormulaRow(); // Varsayılan 1 satır ekle
+            modal.classList.remove('hidden');
+        });
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => modal.classList.add('hidden'));
+
+        // Sonsuz Formül Satırı Ekleme Fonksiyonu
+        function addFormulaRow(malzemeKodu = "", renk = "", formul = "") {
+            const container = document.getElementById('formurRowsContainer');
+            const rowId = 'row_' + Math.random().toString(36.substring(2, 9));
+
+            let optionsHtml = `<option value="">-- Malzeme Kodu Seç --</option>`;
+            tanimliUrunlerCache.forEach(u => {
+                let selected = (u.urunKodu === malzemeKodu) ? "selected" : "";
+                optionsHtml += `<option value="${u.urunKodu}" ${selected}>${u.urunKodu} - ${u.urunTanimi}</option>`;
+            });
+
+            const rowHtml = `
+                <div id="${rowId}" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2 relative">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-mono text-slate-400">Malzeme & Formül Satırı</span>
+                        <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-400 hover:text-rose-300 text-[10px] px-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Malzeme Kodu</label>
+                            <select class="row-malzeme w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Renk Kısıtı (İsteğe Bağlı)</label>
+                            <input type="text" class="row-renk w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: BEYAZ" value="${renk}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[8px] text-slate-400 mb-0.5 block">Formül (EN, BOY, ADET kullanın)</label>
+                        <input type="text" class="row-formul w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-indigo-300 font-mono text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: (EN * 2) + BOY - 5" value="${formul}">
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        window.addFormulaRow = addFormulaRow;
+        document.getElementById('btnAddRow').addEventListener('click', () => addFormulaRow());
+
+        // Kaydet / Güncelle
+        document.getElementById('btnSaveRecete').addEventListener('click', async () => {
+            const editId = document.getElementById('editReceteId').value.trim();
+            const anaUrunKodu = document.getElementById('selectAnaUrun').value;
+
+            if (!anaUrunKodu) {
+                alert("Lütfen üretilecek ana ürünü seçin!");
+                return;
+            }
+
+            const rows = document.querySelectorAll('#formurRowsContainer > div');
+            let receteKalemleri = [];
+
+            rows.forEach(row => {
+                const malzemeKodu = row.querySelector('.row-malzeme').value;
+                const renk = row.querySelector('.row-renk').value.trim().toUpperCase();
+                const formul = row.querySelector('.row-formul').value.trim();
+
+                if (malzemeKodu && formul) {
+                    receteKalemleri.push({
+                        urunKodu: malzemeKodu,
+                        renk: renk,
+                        formul: formul
+                    });
+                }
+            });
+
+            if (receteKalemleri.length === 0) {
+                alert("Lütfen en az bir geçerli malzeme ve formül satırı ekleyin!");
+                return;
+            }
+
+            // Seçilen ana ürünün adını bulalım
+            let anaUrunObj = tanimliUrunlerCache.find(u => u.urunKodu === anaUrunKodu);
+            let urunTanimi = anaUrunObj ? anaUrunObj.urunTanimi : anaUrunKodu;
+            let gorsel = anaUrunObj ? (anaUrunObj.gorsel || "") : "";
+
+            try {
+                document.getElementById('btnSaveRecete').textContent = "Kaydediliyor...";
+
+                if (editId) {
+                    await updateDoc(doc(db, "siparis_urunleri", editId), {
+                        urunKodu: anaUrunKodu,
+                        urunTanimi: urunTanimi,
+                        gorsel: gorsel,
+                        recete: receteKalemleri
+                    });
+                } else {
+                    await addDoc(collection(db, "siparis_urunleri"), {
+                        urunKodu: anaUrunKodu,
+                        urunTanimi: urunTanimi,
+                        gorsel: gorsel,
+                        recete: receteKalemleri,
+                        createdAt: new Date()
+                    });
+                }
+
+                modal.classList.add('hidden');
+                document.getElementById('btnSaveRecete').textContent = "Reçeteyi Kaydet";
+            } catch (err) {
+                console.error("Reçete kayıt hatası:", err);
+                alert("Hata: " + err.message);
+                document.getElementById('btnSaveRecete').textContent = "Reçeteyi Kaydet";
+            }
+        });
+
+        // Reçeteleri Listeleme
+        function loadReceteler() {
+            const q = query(collection(db, "siparis_urunleri"), orderBy("urunTanimi"));
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('receteListContainer');
+                container.innerHTML = "";
+                document.getElementById('receteCount').textContent = `${snapshot.size} Reçete`;
+                receteCache = {};
+
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[180px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-base mb-2">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </div>
+                            <h4 class="text-xs font-semibold text-slate-300">Kayıtlı Reçete Yok</h4>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Yukarıdaki butonu kullanarak yeni reçete ekleyin.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const docId = docSnap.id;
+                    receteCache[docId] = data;
+
+                    let receteSatirlariHtml = "";
+                    if (data.recete && Array.isArray(data.recete)) {
+                        data.recete.forEach(r => {
+                            let renkBadge = r.renk ? `<span class="bg-purple-500/10 text-purple-400 px-1 py-0.5 rounded text-[8px]">${r.renk}</span>` : `<span class="text-slate-500 text-[8px]">Tüm Renkler</span>`;
+                            receteSatirlariHtml += `
+                                <div class="bg-slate-950 border border-slate-800/80 p-1.5 rounded-lg flex justify-between items-center text-[9px] font-mono">
+                                    <div>
+                                        <span class="text-indigo-400 font-bold">${r.urunKodu}</span>
+                                        <span class="text-slate-400 ml-1">(${renkBadge})</span>
+                                    </div>
+                                    <span class="text-emerald-400 font-bold">${r.formul}</span>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    const cardHtml = `
+                        <div class="glass-card p-3 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2 min-w-0">
+                                    <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                        ${data.gorsel ? `<img src="${data.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600 text-xs"></i>`}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-[9px] font-mono text-indigo-400 font-semibold">${data.urunKodu || ''}</span>
+                                        <h4 class="text-xs font-bold text-slate-100 truncate">${data.urunTanimi}</h4>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <button type="button" onclick="window.editRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-600/20 hover:text-indigo-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Düzenle">
+                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    </button>
+                                    <button type="button" onclick="window.deleteRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1 pt-1 border-t border-slate-800/80">
+                                <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Formüller (${data.recete ? data.recete.length : 0}):</span>
+                                ${receteSatirlariHtml}
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += cardHtml;
+                });
+            });
+        }
+
+        window.editRecete = function(id) {
+            const data = receteCache[id];
+            if (!data) return;
+
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-400"></i> Reçeteyi Düzenle`;
+            document.getElementById('editReceteId').value = id;
+            document.getElementById('selectAnaUrun').value = data.urunKodu || "";
+            
+            const container = document.getElementById('formurRowsContainer');
+            container.innerHTML = "";
+
+            if (data.recete && Array.isArray(data.recete)) {
+                data.recete.forEach(r => {
+                    addFormulaRow(r.urunKodu, r.renk, r.formul);
+                });
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        window.deleteRecete = async function(id) {
+            if (confirm("Bu reçeteyi silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "siparis_urunleri", id));
+                } catch (err) {
+                    alert("Silme hatası: " + err.message);
+                }
+            }
+        };
+
+        initApp();
+    </script>
+</body>
+</html>
