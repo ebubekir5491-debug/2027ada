@@ -123,11 +123,7 @@
                                 <option value="KOYU KAHVE">KOYU KAHVE</option>
                                 <option value="ALTIN MEŞE">ALTIN MEŞE</option>
                             </select>
-                            <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-4 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
-                            <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
-                                <option value="Adet">Adet</option>
-                                <option value="Mt">Mt</option>
-                            </select>
+                            <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
                             <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                         </div>
                     </div>
@@ -213,11 +209,7 @@
                         <option value="KOYU KAHVE">KOYU KAHVE</option>
                         <option value="ALTIN MEŞE">ALTIN MEŞE</option>
                     </select>
-                    <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-4 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
-                    <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
-                        <option value="Adet">Adet</option>
-                        <option value="Mt">Mt</option>
-                    </select>
+                    <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
                     <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
             `;
@@ -243,11 +235,7 @@
                     <option value="KOYU KAHVE">KOYU KAHVE</option>
                     <option value="ALTIN MEŞE">ALTIN MEŞE</option>
                 </select>
-                <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-4 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
-                <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
-                    <option value="Adet">Adet</option>
-                    <option value="Mt">Mt</option>
-                </select>
+                <input type="text" placeholder="Formül (örn: EN*2)" class="col-span-5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
                 <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
             `;
             container.appendChild(rowDiv);
@@ -288,11 +276,7 @@
                             <option value="KOYU KAHVE" ${item.renk === "KOYU KAHVE" ? "selected" : ""}>KOYU KAHVE</option>
                             <option value="ALTIN MEŞE" ${item.renk === "ALTIN MEŞE" ? "selected" : ""}>ALTIN MEŞE</option>
                         </select>
-                        <input type="text" value="${item.formul || ''}" placeholder="Formül" class="col-span-4 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
-                        <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
-                            <option value="Adet" ${item.birim === "Adet" ? "selected" : ""}>Adet</option>
-                            <option value="Mt" ${item.birim === "Mt" ? "selected" : ""}>Mt</option>
-                        </select>
+                        <input type="text" value="${item.formul || ''}" placeholder="Formül" class="col-span-5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 row-formul">
                         <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     `;
                     container.appendChild(rowDiv);
@@ -319,9 +303,8 @@
                 const kod = row.querySelector('.row-kod').value.trim();
                 const renk = row.querySelector('.row-renk').value;
                 const formul = row.querySelector('.row-formul').value.trim();
-                const birim = row.querySelector('.row-birim').value;
                 if (kod && formul) {
-                    receteListesi.push({ urunKodu: kod, renk: renk, formul: formul, birim: birim });
+                    receteListesi.push({ urunKodu: kod, renk: renk, formul: formul });
                 }
             });
 
@@ -393,12 +376,10 @@
                         if (data.recete && Array.isArray(data.recete)) {
                             data.recete.forEach(item => {
                                 const renkBadge = item.renk ? `<span class="text-[9px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded font-medium">${item.renk}</span>` : `<span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Tüm Renkler</span>`;
-                                const birimBadge = `<span class="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium">${item.birim || 'Adet'}</span>`;
                                 
                                 receteHtml += `<div class="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1 rounded-md font-mono flex justify-between items-center gap-1">
                                     <span class="text-blue-400 font-bold">${item.urunKodu}</span>
                                     ${renkBadge}
-                                    ${birimBadge}
                                     <span class="text-amber-400 font-semibold">${item.formul}</span>
                                 </div>`;
                             });
