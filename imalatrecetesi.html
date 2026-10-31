@@ -137,23 +137,44 @@
         let db = null;
         let tanimliUrunlerCache = [];
         let receteCache = {};
+        let authChecked = false;
 
         async function initApp() {
             if (typeof firebaseConfig === 'undefined') { window.location.href = "index.html"; return; }
-            const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-            auth = getAuth(app);
-            db = getFirestore(app);
+            
+            try {
+                const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-            onAuthStateChanged(auth, (user) => {
+                onAuthStateChanged(auth, (user) => {
+                    if (!authChecked) {
+                        authChecked = true;
+                        document.getElementById('authCheckOverlay').classList.add('hidden');
+                        if (user) {
+                            document.getElementById('userEmailTag').textContent = user.email;
+                        }
+                        loadTanimliUrunler();
+                        loadReceteler();
+                    }
+                });
+
+                // 3 saniye içinde auth tetiklenmezse otomatik aç (Güvenlik Zaman Aşımı)
+                setTimeout(() => {
+                    if (!authChecked) {
+                        authChecked = true;
+                        document.getElementById('authCheckOverlay').classList.add('hidden');
+                        loadTanimliUrunler();
+                        loadReceteler();
+                    }
+                }, 3000);
+
+            } catch (err) {
+                console.error("Init error:", err);
                 document.getElementById('authCheckOverlay').classList.add('hidden');
-                if (user) {
-                    document.getElementById('userEmailTag').textContent = user.email;
-                    loadTanimliUrunler();
-                    loadReceteler();
-                } else {
-                    window.location.href = "index.html";
-                }
-            });
+                loadTanimliUrunler();
+                loadReceteler();
+            }
         }
 
         document.getElementById('btnLogout').addEventListener('click', async () => {
@@ -193,7 +214,7 @@
         // Sonsuz Formül Satırı Ekleme Fonksiyonu
         function addFormulaRow(malzemeKodu = "", renk = "", formul = "") {
             const container = document.getElementById('formurRowsContainer');
-            const rowId = 'row_' + Math.random().toString(36.substring(2, 9));
+            const rowId = 'row_' + Math.random().toString(36).substring(2, 9);
 
             let optionsHtml = `<option value="">-- Malzeme Kodu Seç --</option>`;
             tanimliUrunlerCache.forEach(u => {
@@ -263,7 +284,6 @@
                 return;
             }
 
-            // Seçilen ana ürünün adını bulalım
             let anaUrunObj = tanimliUrunlerCache.find(u => u.urunKodu === anaUrunKodu);
             let urunTanimi = anaUrunObj ? anaUrunObj.urunTanimi : anaUrunKodu;
             let gorsel = anaUrunObj ? (anaUrunObj.gorsel || "") : "";
@@ -356,7 +376,7 @@
                                     <button type="button" onclick="window.editRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-600/20 hover:text-indigo-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Düzenle">
                                         <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                                     </button>
-                                    <button type="button" onclick="window.deleteRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
+                                    <button type="button" onclick="window.deleteRecete('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
                                         <i class="fa-solid fa-trash-can text-[10px]"></i>
                                     </button>
                                 </div>
