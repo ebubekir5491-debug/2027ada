@@ -32,7 +32,7 @@
         @media print {
             body { background: white !important; color: black !important; }
             .no-print { display: none !important; }
-            .print-area { display: block !important; width: 100%; position: absolute; top: 0; left: 0; background: white; color: black; }
+            .print-area { display: block !important; width: 100%; position: absolute; top: 0; left: 0; background: white; color: black; padding: 10px; }
         }
     </style>
 </head>
@@ -111,17 +111,17 @@
 
     <!-- İMALAT FORMU YAZDIRMA MODALI (A4 YATAY) -->
     <div id="printModal" class="fixed inset-0 z-50 bg-slate-950/90 flex flex-col items-center justify-center p-2 hidden overflow-auto">
-        <div class="bg-white text-slate-900 w-full max-w-5xl rounded-2xl p-6 shadow-2xl space-y-4 my-auto relative">
+        <div class="bg-white text-slate-900 w-full max-w-6xl rounded-2xl p-6 shadow-2xl space-y-4 my-auto relative">
             <div class="flex justify-between items-center border-b pb-3 no-print">
-                <h3 class="font-bold text-lg text-indigo-900"><i class="fa-solid fa-print"></i> İmalat Formu Önizleme (A4 Yatay)</h3>
+                <h3 class="font-bold text-lg text-indigo-900"><i class="fa-solid fa-print"></i> İmalat Üretim Formu (A4 Yatay Düzen)</h3>
                 <div class="flex space-x-2">
                     <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700"><i class="fa-solid fa-print"></i> Yazdır</button>
                     <button onclick="document.getElementById('printModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-xl text-xs font-bold hover:bg-slate-300">Kapat</button>
                 </div>
             </div>
 
-            <!-- TABLO ALANI -->
-            <div id="printModalBody" class="overflow-x-auto text-[11px]"></div>
+            <!-- TABLO ALANI (GÖRSELDEKİ FORMAT) -->
+            <div id="printModalBody" class="print-area overflow-x-auto text-[10px]"></div>
         </div>
     </div>
 
@@ -283,7 +283,7 @@
                 expr = expr.replace(/ADET/g, ADET);
                 return Math.round(Function(`'use strict'; return (${expr})`)() * 100) / 100;
             } catch (e) {
-                return 0;
+                return EN; // Hata durumunda net ölçüyü döndür
             }
         }
 
@@ -291,7 +291,8 @@
             const data = imalatCache[id];
             if (!data) return;
 
-            let rowsHtml = "";
+            let netRowsHtml = "";
+            let imalatRowsHtml = "";
             let sira = 1;
 
             if (data.kalemler && Array.isArray(data.kalemler)) {
@@ -300,13 +301,13 @@
                     const boy = Number(k.boy || 0);
                     const adet = Number(k.adet || 1);
 
-                    // Reçeteden ilgili ürüne ait imalat formüllerini bulalım
+                    // Reçeteden formülleri bulalım
                     let receteObj = imalatReceteleriCache.find(r => r.urunId === k.urunId || r.urunTanimi === k.urunTanimi);
                     
-                    let kasaEn = en, kasaBoy = boy, kasaAdet = adet;
-                    let kanatBoy = boy, kanatAdet = adet;
-                    let tulTip = k.tul || "STANDART", tulEn = en, tulAdet = adet;
-                    let ipBoy = boy, ipAdet = 4, ipAraligi = "15 cm";
+                    let kasaEn = en, kasaBoy = boy;
+                    let kanatBoy = boy;
+                    let tulBoy = boy;
+                    let ipBoy = boy;
 
                     if (receteObj && receteObj.recete) {
                         receteObj.recete.forEach(rec => {
@@ -315,69 +316,126 @@
                             if (mAdi.includes("KASA EN")) kasaEn = val;
                             if (mAdi.includes("KASA BOY")) kasaBoy = val;
                             if (mAdi.includes("KANAT")) kanatBoy = val;
-                            if (mAdi.includes("TÜL") || mAdi.includes("TUL")) tulEn = val;
+                            if (mAdi.includes("TÜL") || mAdi.includes("TUL")) tulBoy = val;
                             if (mAdi.includes("İP") || mAdi.includes("IP")) ipBoy = val;
                         });
                     }
 
-                    rowsHtml += `
+                    // 1. Üst Tablo (Net Ölçüler)
+                    netRowsHtml += `
                         <tr class="border-b text-center">
-                            <td class="p-2 border">${sira++}</td>
-                            <td class="p-2 border font-bold text-left">${k.urunTanimi}</td>
-                            <td class="p-2 border">${k.en}</td>
-                            <td class="p-2 border">${k.boy}</td>
-                            <td class="p-2 border">${k.adet}</td>
-                            <td class="p-2 border">${k.renk || '-'}</td>
-                            <td class="p-2 border">${k.eklenti || '-'}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${k.en}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${k.boy}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${kanatBoy}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
-                            <td class="p-2 border">${tulTip}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${k.en}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${adet}</td>
-                            <td class="p-2 border font-mono bg-slate-50">${ipBoy}</td>
-                            <td class="p-2 border font-mono bg-slate-50">4</td>
-                            <td class="p-2 border">15 cm</td>
+                            <td class="p-1.5 border">${sira}</td>
+                            <td class="p-1.5 border">${k.en}</td>
+                            <td class="p-1.5 border">${k.boy}</td>
+                            <td class="p-1.5 border">${k.renk || '-'}</td>
+                            <td class="p-1.5 border">KALIN SERİ</td>
+                            <td class="p-1.5 border">YATAY</td>
+                            <td class="p-1.5 border">TEK KANAT</td>
+                            <td class="p-1.5 border">${k.tul || 'STANDART'}</td>
+                            <td class="p-1.5 border">${k.eklenti || '-'}</td>
+                            <td class="p-1.5 border font-bold">${k.adet}</td>
+                            <td class="p-1.5 border">-</td>
                         </tr>
                     `;
+
+                    // 2. Alt Tablo (İmalat Kesim Detayı - Akıllı Hesaplama)
+                    imalatRowsHtml += `
+                        <tr class="border-b text-center">
+                            <td class="p-1.5 border">${sira}</td>
+                            <td class="p-1.5 border font-mono bg-indigo-50 font-bold">${kasaEn}</td>
+                            <td class="p-1.5 border font-mono bg-indigo-50 font-bold">${kasaBoy}</td>
+                            <td class="p-1.5 border font-mono">${adet}</td>
+                            <td class="p-1.5 border font-mono">${kanatBoy}</td>
+                            <td class="p-1.5 border font-mono">${tulBoy}</td>
+                            <td class="p-1.5 border font-mono">${adet}</td>
+                            <td class="p-1.5 border font-mono">STANDART</td>
+                            <td class="p-1.5 border font-mono">${adet}</td>
+                            <td class="p-1.5 border font-mono">${ipBoy}</td>
+                            <td class="p-1.5 border font-mono">4</td>
+                            <td class="p-1.5 border font-mono">15 cm</td>
+                        </tr>
+                    `;
+                    sira++;
                 });
             }
 
+            const tarihStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString('tr-TR') : new Date().toLocaleString('tr-TR');
+
             const printBody = document.getElementById('printModalBody');
             printBody.innerHTML = `
-                <div class="mb-4 text-center">
-                    <h2 class="text-xl font-extrabold uppercase">İMALAT ÜRETİM FORMU</h2>
-                    <p class="text-xs text-slate-600">Sipariş Kodu: <strong>${data.siparisKodu}</strong> | Tarih: ${new Date().toLocaleDateString('tr-TR')}</p>
+                <!-- BAŞLIK -->
+                <div class="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-3">
+                    <div>
+                        <h1 class="text-lg font-extrabold tracking-wider text-slate-900">ADA SİNEKLİK <span class="text-sm font-normal text-slate-600">| ÜRETİM FORMU</span></h1>
+                        <p class="text-[9px] text-slate-500">Tarih: (Güncellendi) ${tarihStr}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-500 uppercase block">Sipariş No</span>
+                        <strong class="text-lg font-mono text-rose-600">${data.siparisKodu}</strong>
+                    </div>
                 </div>
-                <table class="w-full border-collapse border border-slate-400 text-[10px]">
-                    <thead>
-                        <tr class="bg-slate-200 text-slate-800 uppercase">
-                            <th class="border p-1.5">Sıra</th>
-                            <th class="border p-1.5">Ürün Tanımı</th>
-                            <th class="border p-1.5">Sip. En</th>
-                            <th class="border p-1.5">Sip. Boy</th>
-                            <th class="border p-1.5">Adet</th>
-                            <th class="border p-1.5">Renk</th>
-                            <th class="border p-1.5">Eklenti</th>
-                            <th class="border p-1.5 bg-indigo-100">Kasa En</th>
-                            <th class="border p-1.5 bg-indigo-100">Kasa Boy</th>
-                            <th class="border p-1.5 bg-indigo-100">Kasa Ad.</th>
-                            <th class="border p-1.5 bg-indigo-100">Kanat Boy</th>
-                            <th class="border p-1.5 bg-indigo-100">Kanat Ad.</th>
-                            <th class="border p-1.5 bg-emerald-100">Tül Tipi</th>
-                            <th class="border p-1.5 bg-emerald-100">Tül En</th>
-                            <th class="border p-1.5 bg-emerald-100">Tül Ad.</th>
-                            <th class="border p-1.5 bg-amber-100">İp Boy</th>
-                            <th class="border p-1.5 bg-amber-100">İp Ad.</th>
-                            <th class="border p-1.5 bg-amber-100">İp Aralık</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
+
+                <div class="flex justify-between items-center bg-slate-100 p-2 rounded mb-3 text-[11px] font-semibold border">
+                    <div>MÜŞTERİ: ${data.olusturan || 'GENEL MÜŞTERİ'}</div>
+                    <div>TELEFON: -</div>
+                    <div>TOPLAM SATIŞ: - TL</div>
+                </div>
+
+                <!-- 1. SİPARİŞ LİSTESİ (NET ÖLÇÜLER) -->
+                <div class="mb-4">
+                    <div class="bg-slate-800 text-white px-2 py-1 text-[10px] font-bold uppercase rounded-t">
+                        1. SİPARİŞ LİSTESİ (NET ÖLÇÜLER)
+                    </div>
+                    <table class="w-full border-collapse border border-slate-400">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800">
+                                <th class="border p-1">NO</th>
+                                <th class="border p-1">EN</th>
+                                <th class="border p-1">BOY</th>
+                                <th class="border p-1">RENK</th>
+                                <th class="border p-1">SERİ</th>
+                                <th class="border p-1">YÖN</th>
+                                <th class="border p-1">MODEL</th>
+                                <th class="border p-1">TÜL</th>
+                                <th class="border p-1">EKLENTİ</th>
+                                <th class="border p-1">ADET</th>
+                                <th class="border p-1">NOT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${netRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. İMALAT KESİM DETAYI (AKILLI HESAPLAMA) -->
+                <div>
+                    <div class="bg-emerald-800 text-white px-2 py-1 text-[10px] font-bold uppercase rounded-t flex justify-between items-center">
+                        <span>2. İMALAT KESİM DETAYI (AKILLI HESAPLAMA)</span>
+                        <span class="text-[9px] font-normal">SINIRSIZ ZİNCİRLEME İŞLEM MANTIĞI UYGULANMIŞTIR</span>
+                    </div>
+                    <table class="w-full border-collapse border border-slate-400">
+                        <thead>
+                            <tr class="bg-emerald-50 text-slate-800">
+                                <th class="border p-1">NO</th>
+                                <th class="border p-1 bg-indigo-100">KASA EN</th>
+                                <th class="border p-1 bg-indigo-100">KASA BOY</th>
+                                <th class="border p-1 bg-indigo-100">KASA EN BOY ADET</th>
+                                <th class="border p-1 bg-indigo-100">KANAT BOY</th>
+                                <th class="border p-1 bg-emerald-100">TÜL BOY</th>
+                                <th class="border p-1 bg-emerald-100">KANAT ADET</th>
+                                <th class="border p-1 bg-emerald-100">TÜL TP</th>
+                                <th class="border p-1 bg-emerald-100">TÜL ADET</th>
+                                <th class="border p-1 bg-amber-100">İP BOY</th>
+                                <th class="border p-1 bg-amber-100">İP ADET</th>
+                                <th class="border p-1 bg-amber-100">PERÇİN ARALIK</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${imalatRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
             `;
 
             document.getElementById('printModal').classList.remove('hidden');
@@ -392,37 +450,20 @@
 
             if (data.kalemler && Array.isArray(data.kalemler)) {
                 data.kalemler.forEach((k, index) => {
-                    let malzemelerDetay = "";
-                    if (k.hesaplananMalzemeler && Array.isArray(k.hesaplananMalzemeler)) {
-                        k.hesaplananMalzemeler.forEach(m => {
-                            malzemelerDetay += `<div class="text-[9px] bg-slate-900 px-2 py-0.5 rounded font-mono text-slate-300 flex justify-between">
-                                <span>${m.urunKodu} (${m.renk})</span>
-                                <span class="text-indigo-400 font-bold">${m.hesaplananMiktar} Ad/Mt</span>
-                            </div>`;
-                        });
-                    }
-
-                    let eklentiBadge = k.eklenti ? `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1 py-0.5 rounded font-medium">${k.eklenti}</span>` : '';
-
                     bodyContainer.innerHTML += `
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
-                            <div class="flex items-center justify-between">
-                                <h5 class="font-bold text-slate-100 text-xs">${index + 1}. ${k.urunTanimi}</h5>
-                                <span class="text-[9px] text-emerald-400 font-mono font-bold">${k.toplamMaliyet || 0} TL</span>
-                            </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <h5 class="font-bold text-slate-100 text-xs">${index + 1}. ${k.urunTanimi}</h5>
                             <div class="flex flex-wrap gap-1 text-[9px]">
-                                <span class="bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">EN: ${k.en} cm</span>
-                                <span class="bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">BOY: ${k.boy} cm</span>
+                                <span class="bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">EN: ${k.en}</span>
+                                <span class="bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">BOY: ${k.boy}</span>
                                 <span class="bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">ADET: ${k.adet}</span>
                                 <span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded">${k.tul}</span>
                                 <span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded">${k.renk}</span>
-                                ${eklentiBadge}
                             </div>
                         </div>
                     `;
                 });
             }
-
             document.getElementById('detayModal').classList.remove('hidden');
         };
 
