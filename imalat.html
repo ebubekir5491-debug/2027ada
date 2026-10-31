@@ -102,7 +102,7 @@
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, deleteDoc, updateDoc, addDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let auth = null;
         let db = null;
@@ -172,11 +172,12 @@
 
                         const tarihStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString('tr-TR') : 'Tarih Yok';
                         let toplamKalemSayisi = data.kalemler ? data.kalemler.length : 0;
+                        const isIptal = data.durum === "İPTAL";
 
                         let kalemlerOzet = "";
                         if (data.kalemler && Array.isArray(data.kalemler)) {
                             data.kalemler.forEach((k, idx) => {
-                                if(idx < 2) { // İlk 2 kalemi kartta gösterelim
+                                if(idx < 2) {
                                     let eklentiText = k.eklenti ? ` | ${k.eklenti}` : '';
                                     kalemlerOzet += `<div class="text-[10px] text-slate-300 truncate">• ${k.urunTanimi} (EN:${k.en}, BOY:${k.boy}, AD:${k.adet})${eklentiText}</div>`;
                                 }
@@ -186,16 +187,27 @@
                             }
                         }
 
+                        let durumBadge = isIptal ? 
+                            `<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md">İPTAL EDİLDİ</span>` :
+                            `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">ÜRETİMDE</span>`;
+
                         const cardHtml = `
-                            <div class="glass-card p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+                            <div class="glass-card p-3.5 rounded-2xl border ${isIptal ? 'border-rose-900/50 opacity-75' : 'border-slate-800'} space-y-2.5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-2">
                                         <span class="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">${data.siparisKodu}</span>
-                                        <span class="text-[10px] text-slate-400">${tarihStr}</span>
+                                        ${durumBadge}
                                     </div>
-                                    <button type="button" onclick="window.deleteImalatSiparis('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Sil">
-                                        <i class="fa-solid fa-trash-can text-xs"></i>
-                                    </button>
+                                    <div class="flex items-center space-x-1">
+                                        ${!isIptal ? `
+                                            <button type="button" onclick="window.iptalEtSiparis('${docId}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-semibold transition-all active-scale" title="İptal Et & Depoya İade Et">
+                                                İptal Et
+                                            </button>
+                                        ` : ''}
+                                        <button type="button" onclick="window.deleteImalatSiparis('${docId}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-500 border border-slate-700 flex items-center justify-center active-scale" title="Tamamen Sil">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="space-y-1 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
@@ -266,6 +278,63 @@
             document.getElementById('detayModal').classList.remove('hidden');
         };
 
+        // İPTAL ET & MALZEMELERİ DEPOYA GERİ YÜKLE
+        window.iptalEtSiparis = async function(id) {
+            const data = imalatCache[id];
+            if (!data) return;
+
+            if (!confirm(`Sipariş Kodu: ${data.siparisKodu}\nBu siparişi iptal etmek ve harcanan malzemeleri DEPOYA GERİ YÜKLEMEK istediğinize emin misiniz?`)) return;
+
+            try {
+                let toplamKullanilanMalzemeler = {};
+
+                if (data.kalemler && Array.isArray(data.kalemler)) {
+                    data.kalemler.forEach(item => {
+                        if (item.hesaplananMalzemeler && Array.isArray(item.hesaplananMalzemeler)) {
+                            item.hesaplananMalzemeler.forEach(m => {
+                                toplamKullanilanMalzemeler[m.urunKodu] = (toplamKullanilanMalzemeler[m.urunKodu] || 0) + Number(m.hesaplananMiktar);
+                            });
+                        }
+                    });
+                }
+
+                // 1. Depoya pozitif iade kaydı ekleyelim (stok geri yüklenir)
+                let iadeKalemleri = [];
+                for (const [urunKodu, miktar] of Object.entries(toplamKullanilanMalzemeler)) {
+                    iadeKalemleri.push({
+                        urunKodu: urunKodu,
+                        urunTanimi: "Sipariş İptal İadesi",
+                        malGrubu: "İADE",
+                        olcuBirimi: "Ad/Mt",
+                        teslimAlinan: Math.abs(miktar), // Pozitif miktar depoya eklenir
+                        toplamTutar: 0
+                    });
+                }
+
+                if (iadeKalemleri.length > 0) {
+                    await addDoc(collection(db, "satinalma_talepleri"), {
+                        seriNo: `IADE-${data.siparisKodu}`,
+                        durum: "Tamamlandı",
+                        kalemler: iadeKalemleri,
+                        olusturan: auth.currentUser ? auth.currentUser.email : 'Kullanıcı',
+                        guncellenmeTarihi: new Date(),
+                        createdAt: new Date()
+                    });
+                }
+
+                // 2. Sipariş durumunu İPTAL olarak güncelle
+                await updateDoc(doc(db, "tamamlanan_siparisler", id), {
+                    durum: "İPTAL"
+                });
+
+                alert("Sipariş iptal edildi ve kullanılan malzemeler başarıyla depoya geri yüklendi!");
+
+            } catch (e) {
+                console.error("İptal etme hatası:", e);
+                alert("Hata oluştu: " + e.message);
+            }
+        };
+
         document.getElementById('btnCloseModal').addEventListener('click', () => {
             document.getElementById('detayModal').classList.add('hidden');
         });
@@ -274,7 +343,7 @@
         });
 
         window.deleteImalatSiparis = async function(id) {
-            if (confirm("Bu imalat sipariş kaydını silmek istediğinize emin misiniz?")) {
+            if (confirm("Bu imalat kaydını tamamen silmek istediğinize emin misiniz?")) {
                 try {
                     await deleteDoc(doc(db, "tamamlanan_siparisler", id));
                 } catch (e) {
