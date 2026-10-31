@@ -199,7 +199,7 @@
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let auth = null;
         let db = null;
@@ -538,7 +538,7 @@
                     container.innerHTML += cardHtml;
                 });
 
-                document.getElementById('totalCostTag`].textContent = `${Math.round(genelSepetMaliyeti * 100) / 100} TL`;
+                document.getElementById('totalCostTag').textContent = `${Math.round(genelSepetMaliyeti * 100) / 100} TL`;
             });
         }
 
