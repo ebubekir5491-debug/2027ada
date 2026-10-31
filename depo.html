@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Depo ve Stok Yönetimi - Mobil İşletme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative overflow-x-hidden border-x border-slate-800/50 shadow-2xl">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="p-4 pt-6 glass-card border-b border-slate-800 sticky top-0 z-30">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
+                </a>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-boxes-stacked text-emerald-400"></i>
+                        <span>DEPO & STOK DURUMU</span>
+                    </h2>
+                    <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[110px]">Kullanıcı</p>
+                </div>
+            </div>
+
+            <button type="button" id="btnLogout" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Çıkış Yap">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-3">
+        
+        <!-- Dinamik Arama Çubuğu -->
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+            <input type="text" id="searchInput" placeholder="Depoda ürün kodu veya adı ara..." class="w-full bg-slate-900/80 border border-slate-700/60 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Depodaki Malzemeler</h3>
+            <span id="stokCesitCount" class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">0 Çeşit Ürün</span>
+        </div>
+
+        <!-- Stok Kartlarının Listeleneceği Container -->
+        <div id="depoListContainer" class="space-y-3">
+            <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[200px]">
+                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-lg mb-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                </div>
+                <h4 class="text-xs font-semibold text-slate-300">Stoklar Yükleniyor...</h4>
+            </div>
+        </div>
+    </main>
+
+    <!-- STOK HAREKETLERİ & GEÇMİŞ MODALI -->
+    <div id="historyModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-3 hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-lg shadow-2xl space-y-4 my-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div id="modalProductImg" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-image text-slate-600"></i>
+                    </div>
+                    <div>
+                        <span id="modalUrunKodu" class="text-[10px] font-mono font-bold text-emerald-400"></span>
+                        <h3 id="modalUrunTanimi" class="font-bold text-slate-100 text-xs truncate max-w-[200px]"></h3>
+                    </div>
+                </div>
+                <button type="button" id="btnCloseModal" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+
+            <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
+                <div>
+                    <span class="text-[10px] text-slate-400 block">Toplam Mevcut Stok</span>
+                    <strong id="modalToplamStok" class="text-emerald-400 text-sm">0</strong>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-slate-400 block">Toplam Harcanan Tutar</span>
+                    <strong id="modalToplamHarcama" class="text-slate-200 text-sm">0.00 TL</strong>
+                </div>
+            </div>
+
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Giriş / Satınalma Hareket Geçmişi</h4>
+
+            <!-- Hareket Geçmişi Listesi -->
+            <div class="space-y-2 max-h-[280px] overflow-y-auto pr-1" id="modalHistoryList"></div>
+
+            <button type="button" id="btnCloseModalBtn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl text-xs transition-all border border-slate-700">
+                Kapat
+            </button>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let consolidatedDepoData = {}; // Ürün koduna göre birleştirilmiş depo verisi
+
+        async function initApp() {
+            if (typeof firebaseConfig === 'undefined') {
+                document.getElementById('loadingSubText').textContent = "firebase-config.js bulunamadı!";
+                return;
+            }
+
+            try {
+                const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, (user) => {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    if (user) {
+                        document.getElementById('userEmailTag').textContent = user.email;
+                    }
+                    loadDepoStoklari();
+                });
+
+                setTimeout(() => {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    loadDepoStoklari();
+                }, 3000);
+
+            } catch (err) {
+                console.error("Init error:", err);
+                document.getElementById('authCheckOverlay').classList.add('hidden');
+                loadDepoStoklari();
+            }
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        });
+
+        // Firestore'dan sadece "Tamamlandı" durumundaki satınalma taleplerini çekip depoda birleştirme
+        function loadDepoStoklari() {
+            try {
+                const q = query(collection(db, "satinalma_talepleri"), where("durum", "==", "Tamamlandı"));
+                
+                onSnapshot(q, (snapshot) => {
+                    consolidatedDepoData = {};
+
+                    snapshot.forEach((docSnap) => {
+                        const talep = docSnap.data();
+                        const seriNo = talep.seriNo;
+                        const olusturan = talep.olusturan || 'Kullanıcı';
+                        const tarihStr = talep.guncellenmeTarihi ? new Date(talep.guncellenmeTarihi.seconds * 1000).toLocaleDateString('tr-TR') : 
+                                        (talep.createdAt ? new Date(talep.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : '-');
+
+                        if (talep.kalemler && Array.isArray(talep.kalemler)) {
+                            talep.kalemler.forEach((kalem) => {
+                                const kod = kalem.urunKodu;
+                                const teslimMiktar = Number(kalem.teslimAlinan !== undefined ? kalem.teslimAlinan : kalem.miktar);
+                                const tutar = Number(kalem.toplamTutar || 0);
+
+                                if (!consolidatedDepoData[kod]) {
+                                    consolidatedDepoData[kod] = {
+                                        urunKodu: kod,
+                                        urunTanimi: kalem.urunTanimi,
+                                        malGrubu: kalem.malGrubu,
+                                        olcuBirimi: kalem.olcuBirimi,
+                                        gorsel: kalem.gorsel || "",
+                                        toplamStok: 0,
+                                        toplamHarcama: 0,
+                                        hareketler: []
+                                    };
+                                }
+
+                                consolidatedDepoData[kod].toplamStok += teslimMiktar;
+                                consolidatedDepoData[kod].toplamHarcama += tutar;
+                                consolidatedDepoData[kod].hareketler.push({
+                                    seriNo: seriNo,
+                                    tarih: tarihStr,
+                                    olusturan: olusturan,
+                                    miktar: teslimMiktar,
+                                    tutar: tutar,
+                                    olcuBirimi: kalem.olcuBirimi
+                                });
+                            });
+                        }
+                    });
+
+                    renderDepoListesi(Object.values(consolidatedDepoData));
+                });
+            } catch (e) {
+                console.error("Depo yükleme hatası:", e);
+            }
+        }
+
+        // Depo Kartlarını Ekrana Basma
+        function renderDepoListesi(items) {
+            const container = document.getElementById('depoListContainer');
+            container.innerHTML = "";
+            document.getElementById('stokCesitCount').textContent = `${items.length} Çeşit Ürün`;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[200px]">
+                        <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-lg mb-2">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <h4 class="text-xs font-semibold text-slate-300">Depo Boş</h4>
+                        <p class="text-[11px] text-slate-500 mt-1">Henüz teyit edilmiş ve depoya girmiş bir ürün bulunmuyor.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach((item) => {
+                let badgeColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (item.malGrubu === "YARI MAMÜL") badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                if (item.malGrubu === "SARF MALZEME") badgeColor = "bg-purple-500/10 text-purple-400 border-purple-500/20";
+
+                const cardHtml = `
+                    <div onclick="window.openHareketDetay('${item.urunKodu}')" class="glass-card p-3.5 rounded-2xl border border-slate-800 hover:border-emerald-500/50 active-scale transition-all cursor-pointer flex items-center justify-between space-x-3">
+                        <div class="flex items-center space-x-3 min-w-0 flex-1">
+                            <div class="w-14 h-14 rounded-xl bg-slate-900 border border-slate-700 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                ${item.gorsel ? `<img src="${item.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600 text-lg"></i>`}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center space-x-2 mb-0.5">
+                                    <span class="text-[10px] font-mono text-emerald-400 font-semibold">${item.urunKodu}</span>
+                                    <span class="text-[9px] px-2 py-0.5 rounded-full border ${badgeColor}">${item.malGrubu}</span>
+                                </div>
+                                <h4 class="text-xs font-bold text-slate-100 truncate">${item.urunTanimi}</h4>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Harcanan: <span class="text-slate-200 font-medium">${item.toplamHarcama.toFixed(2)} TL</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Toplam Birleştirilmiş Stok Miktarı -->
+                        <div class="text-right flex-shrink-0 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                            <span class="text-[9px] text-slate-400 block uppercase">Mevcut Stok</span>
+                            <span class="text-sm font-extrabold text-emerald-400">${item.toplamStok} <small class="text-[10px] text-slate-300 font-normal">${item.olcuBirimi}</small></span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // Arama Filtresi
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const queryText = e.target.value.toLowerCase().trim();
+            const allItems = Object.values(consolidatedDepoData);
+            const filtered = allItems.filter(item => 
+                (item.urunKodu && item.urunKodu.toLowerCase().includes(queryText)) ||
+                (item.urunTanimi && item.urunTanimi.toLowerCase().includes(queryText)) ||
+                (item.malGrubu && item.malGrubu.toLowerCase().includes(queryText))
+            );
+            renderDepoListesi(filtered);
+        });
+
+        // Ürün Hareket Detay Modalı Açma
+        window.openHareketDetay = function(urunKodu) {
+            const item = consolidatedDepoData[urunKodu];
+            if (!item) return;
+
+            document.getElementById('modalUrunKodu').textContent = item.urunKodu;
+            document.getElementById('modalUrunTanimi').textContent = item.urunTanimi;
+            document.getElementById('modalToplamStok').textContent = `${item.toplamStok} ${item.olcuBirimi}`;
+            document.getElementById('modalToplamHarcama').textContent = `${item.toplamHarcama.toFixed(2)} TL`;
+            
+            const imgContainer = document.getElementById('modalProductImg');
+            imgContainer.innerHTML = item.gorsel ? `<img src="${item.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600"></i>`;
+
+            const historyList = document.getElementById('modalHistoryList');
+            historyList.innerHTML = "";
+
+            // Hareketleri sondan başa sıralayıp basma
+            const reversedHistory = [...item.hareketler].reverse();
+            reversedHistory.forEach((h) => {
+                historyList.innerHTML += `
+                    <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] font-mono font-bold text-rose-400">${h.seriNo}</span>
+                                <span class="text-[10px] text-slate-400">${h.tarih}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Alımı Yapan: <span class="text-slate-300 font-medium">${h.olusturan}</span></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-emerald-400 block">+${h.miktar} ${h.olcuBirimi}</span>
+                            <span class="text-[10px] text-slate-300 font-medium">${h.tutar.toFixed(2)} TL</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('historyModal').classList.remove('hidden');
+        };
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            document.getElementById('historyModal').classList.add('hidden');
+        });
+        document.getElementById('btnCloseModalBtn').addEventListener('click', () => {
+            document.getElementById('historyModal').classList.add('hidden');
+        });
+
+        initApp();
+    </script>
+</body>
+</html>

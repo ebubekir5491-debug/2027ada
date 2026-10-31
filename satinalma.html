@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Satınalma Yönetimi - Mobil İşletme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF Kütüphanesi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative overflow-x-hidden border-x border-slate-800/50 shadow-2xl">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Lütfen bekleyin, yetkiniz doğrulanıyor...</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="p-4 pt-6 glass-card border-b border-slate-800 sticky top-0 z-30">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
+                </a>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-truck-ramp-box text-rose-400"></i>
+                        <span>SATINALMA TALEPLERİ</span>
+                    </h2>
+                    <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[110px]">Kullanıcı</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <a href="tanimliurunler.html" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all active-scale shadow-sm">
+                    <i class="fa-solid fa-tags text-rose-400 text-xs"></i>
+                    <span>ÜRÜNLER</span>
+                </a>
+                <button type="button" id="btnLogout" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Çıkış Yap">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-3">
+        
+        <a href="satinalma-talep-olustur.html" class="w-full py-3.5 bg-rose-600 hover:bg-rose-500 active-scale text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Yeni Satınalma Talebi Oluştur</span>
+        </a>
+
+        <!-- Filtreleme Alanı (Checkbox ile Tamamlananları Gizleme/Gösterme) -->
+        <div class="flex items-center justify-between pt-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Talepler</h3>
+            <label class="flex items-center space-x-2 cursor-pointer text-xs text-slate-300">
+                <input type="checkbox" id="chkShowCompleted" class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-rose-600 focus:ring-0">
+                <span>Tamamlananları Göster</span>
+            </label>
+        </div>
+
+        <div id="talepListContainer" class="space-y-3">
+            <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[200px]">
+                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-lg mb-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                </div>
+                <h4 class="text-xs font-semibold text-slate-300">Yükleniyor...</h4>
+            </div>
+        </div>
+    </main>
+
+    <!-- İRSALİYE / TALEP DETAY MODALI -->
+    <div id="detailModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-3 hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-lg shadow-2xl space-y-4 my-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <span id="modalSeriNo" class="text-xs font-mono font-bold text-rose-400"></span>
+                    <h3 class="font-bold text-slate-100 text-sm">Satınalma İrsaliye & Teslimat Fişi</h3>
+                </div>
+                <button type="button" id="btnCloseModal" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+
+            <div class="text-[11px] text-slate-400 flex justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span>Oluşturan: <strong id="modalOlusturan" class="text-slate-200"></strong></span>
+                <span>Durum: <strong id="modalDurum" class="text-amber-400">Bekliyor</strong></span>
+            </div>
+
+            <!-- Kilit Bilgi Notu -->
+            <div id="lockNotice" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] p-2 rounded-xl text-center">
+                <i class="fa-solid fa-lock"></i> Bu talep tamamlanmıştır. Alanları düzenlemek için Teyit Ver butonuna bastığınızda 7556 şifresi istenecektir.
+            </div>
+
+            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1" id="modalItemsList"></div>
+
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button type="button" id="btnDownloadPdf" class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl text-xs transition-all border border-slate-700 flex items-center justify-center gap-1.5 active-scale">
+                    <i class="fa-solid fa-file-pdf text-rose-400"></i> A4 PDF İndir
+                </button>
+                <button type="button" id="btnConfirmTeyit" class="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 active-scale">
+                    <i class="fa-solid fa-check"></i> Teyit Ver & Depoya Gir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let activeTalepId = null;
+        let activeTalepData = null;
+        let allTaleplerCache = [];
+        let isUnlockedForEdit = false; // Şifre girilip açıldı mı kontrolü
+
+        async function initApp() {
+            if (typeof firebaseConfig === 'undefined') {
+                document.getElementById('loadingSubText').textContent = "firebase-config.js bulunamadı!";
+                return;
+            }
+
+            try {
+                const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, (user) => {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    if (user) {
+                        document.getElementById('userEmailTag').textContent = user.email;
+                    }
+                    loadTalepler();
+                });
+
+                setTimeout(() => {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    loadTalepler();
+                }, 3000);
+
+            } catch (err) {
+                console.error("Init error:", err);
+                document.getElementById('authCheckOverlay').classList.add('hidden');
+                loadTalepler();
+            }
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        });
+
+        function loadTalepler() {
+            try {
+                const q = query(collection(db, "satinalma_talepleri"), orderBy("createdAt", "desc"));
+                onSnapshot(q, (snapshot) => {
+                    allTaleplerCache = [];
+                    snapshot.forEach((docSnap) => {
+                        allTaleplerCache.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderTaleplerListesi();
+                });
+            } catch (e) {
+                console.error("Firestore yükleme hatası:", e);
+            }
+        }
+
+        function renderTaleplerListesi() {
+            const showCompleted = document.getElementById('chkShowCompleted').checked;
+            const container = document.getElementById('talepListContainer');
+            container.innerHTML = "";
+
+            const filtered = allTaleplerCache.filter(item => {
+                if (!showCompleted) {
+                    return item.durum !== "Tamamlandı";
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[200px]">
+                        <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-lg mb-2">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <h4 class="text-xs font-semibold text-slate-300">Talep Bulunamadı</h4>
+                        <p class="text-[11px] text-slate-500 mt-1">Görüntülenecek aktif satınalma talebi yok.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach((data) => {
+                const talepId = data.id;
+                const tarihStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : 'Tarih yok';
+                const kalemSayisi = data.kalemler ? data.kalemler.length : 0;
+                const isCompleted = data.durum === "Tamamlandı";
+                const statusText = isCompleted ? '<span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Tamamlandı</span>' : '<span class="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Bekliyor</span>';
+
+                const cardHtml = `
+                    <div onclick="window.openTalepDetay('${talepId}')" class="glass-card p-4 rounded-2xl border border-slate-800 hover:border-rose-500/50 active-scale transition-all cursor-pointer flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold text-base">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-mono font-bold text-rose-400">${data.seriNo}</span>
+                                <h4 class="text-xs font-bold text-slate-100 mt-0.5">${kalemSayisi} Kalem Malzeme</h4>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Oluşturan: ${data.olusturan || 'Kullanıcı'}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block mb-1">${tarihStr}</span>
+                            ${statusText}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        document.getElementById('chkShowCompleted').addEventListener('change', renderTaleplerListesi);
+
+        window.openTalepDetay = async function(id) {
+            activeTalepId = id;
+            isUnlockedForEdit = false; // Her modal açılışında başlangıçta kilitli başlar
+
+            const docSnap = await getDoc(doc(db, "satinalma_talepleri", id));
+            if (!docSnap.exists()) return;
+
+            activeTalepData = docSnap.data();
+            const isCompleted = activeTalepData.durum === "Tamamlandı";
+
+            document.getElementById('modalSeriNo').textContent = activeTalepData.seriNo;
+            document.getElementById('modalOlusturan').textContent = activeTalepData.olusturan || '-';
+            const durumEl = document.getElementById('modalDurum');
+            durumEl.textContent = isCompleted ? "Tamamlandı" : "Bekliyor";
+            durumEl.className = isCompleted ? "text-emerald-400 font-bold" : "text-amber-400 font-bold";
+
+            const lockNotice = document.getElementById('lockNotice');
+            if (isCompleted) {
+                lockNotice.classList.remove('hidden');
+            } else {
+                lockNotice.classList.add('hidden');
+            }
+
+            // Bekleyenler açık, tamamlananlar kilitli başlar
+            renderModalItems(isCompleted);
+            document.getElementById('detailModal').classList.remove('hidden');
+        };
+
+        function renderModalItems(isLocked) {
+            const listEl = document.getElementById('modalItemsList');
+            listEl.innerHTML = "";
+
+            activeTalepData.kalemler.forEach((k, index) => {
+                const teslimAlinanVal = k.teslimAlinan !== undefined ? k.teslimAlinan : k.miktar;
+                const toplamTutarVal = k.toplamTutar !== undefined ? k.toplamTutar : "";
+                const disabledAttr = isLocked ? "disabled" : "";
+
+                listEl.innerHTML += `
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                    ${k.gorsel ? `<img src="${k.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600"></i>`}
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-slate-200">${k.urunTanimi}</h5>
+                                    <span class="text-[10px] font-mono text-blue-400">${k.urunKodu} - ${k.malGrubu}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block">Talep Edilen</span>
+                                <strong class="text-slate-100">${k.miktar} ${k.olcuBirimi}</strong>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-0.5">Teslim Alınan Miktar</label>
+                                <input type="number" id="teslim_${index}" value="${teslimAlinanVal}" min="0" max="${k.miktar}" ${disabledAttr} class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-semibold text-center focus:outline-none focus:border-emerald-500 disabled:opacity-50">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-0.5">Toplam Fiyat (TL) *</label>
+                                <input type="number" id="tutar_${index}" value="${toplamTutarVal}" min="0" step="0.01" placeholder="0.00 ₺" ${disabledAttr} class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-emerald-400 font-semibold text-center focus:outline-none focus:border-emerald-500 disabled:opacity-50">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.add('hidden');
+        });
+
+        // Teyit Ver / Güncelle Butonu
+        document.getElementById('btnConfirmTeyit').addEventListener('click', async () => {
+            if (!activeTalepData || !activeTalepId) return;
+
+            const isCompleted = activeTalepData.durum === "Tamamlandı";
+
+            // Eğer talep tamamlanmışsa ve henüz şifre girilip açılmadıysa şifre isteyelim
+            if (isCompleted && !isUnlockedForEdit) {
+                const girilenSifre = prompt("Bu talep daha önce teyit edilmiş ve kilitlenmiştir.\nDeğişiklik yapmak için lütfen 7556 şifresini giriniz:");
+                if (girilenSifre !== "7556") {
+                    if (girilenSifre !== null) alert("Hatalı şifre girdiniz!");
+                    return;
+                }
+                // Şifre doğruysa inputların kilidini açalım ki kullanıcı değerleri değiştirebilsin
+                isUnlockedForEdit = true;
+                renderModalItems(false); // Alanları aktif et
+                alert("Şifre doğru! Şimdi alanları güncelleyip tekrar 'Teyit Ver & Depoya Gir' butonuna basabilirsiniz.");
+                return;
+            }
+
+            let updatedKalemler = [];
+            let isValid = true;
+
+            activeTalepData.kalemler.forEach((k, index) => {
+                const teslimInput = document.getElementById(`teslim_${index}`);
+                const tutarInput = document.getElementById(`tutar_${index}`);
+
+                const teslimAlinan = Number(teslimInput.value);
+                const toplamTutar = Number(tutarInput.value);
+
+                if (isNaN(toplamTutar) || toplamTutar < 0) {
+                    isValid = false;
+                }
+
+                updatedKalemler.push({
+                    ...k,
+                    teslimAlinan: teslimAlinan,
+                    toplamTutar: toplamTutar
+                });
+            });
+
+            if (!isValid) {
+                alert("Lütfen her kalem malzeme için geçerli bir Toplam Fiyat (TL) giriniz!");
+                return;
+            }
+
+            try {
+                document.getElementById('btnConfirmTeyit').textContent = "Kaydediliyor...";
+                
+                await updateDoc(doc(db, "satinalma_talepleri", activeTalepId), {
+                    kalemler: updatedKalemler,
+                    durum: "Tamamlandı",
+                    guncellenmeTarihi: new Date()
+                });
+
+                alert("Teyit verildi ve depodaki veriler başarıyla güncellendi!");
+                document.getElementById('detailModal').classList.add('hidden');
+                document.getElementById('btnConfirmTeyit').textContent = "Teyit Ver & Depoya Gir";
+
+            } catch (err) {
+                console.error("Güncelleme hatası:", err);
+                alert("Hata oluştu: " + err.message);
+                document.getElementById('btnConfirmTeyit').textContent = "Teyit Ver & Depoya Gir";
+            }
+        });
+
+        // Türkçe Karakter Temizleme (jsPDF Arial/Helvetica Uyumlu)
+        function trToAscii(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/İ/g, 'I').replace(/ı/g, 'i')
+                .replace(/Ş/g, 'S').replace(/ş/g, 's')
+                .replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+                .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+                .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+                .replace(/Ç/g, 'C').replace(/ç/g, 'c');
+        }
+
+        // Profesyonel Arial / Helvetica A4 Dikey İrsaliye PDF İndir
+        document.getElementById('btnDownloadPdf').addEventListener('click', () => {
+            if (!activeTalepData) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+            doc.setFont("helvetica", "normal");
+
+            // Üst Başlık
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.setTextColor(20, 30, 40);
+            doc.text(trToAscii("İŞLETME YÖNETİM SİSTEMİ"), 15, 18);
+
+            doc.setFontSize(11);
+            doc.setTextColor(100, 110, 120);
+            doc.text(trToAscii("SATINALMA İRSALİYE VE TESLİMAT FİŞİ"), 15, 25);
+
+            doc.setLineWidth(0.4);
+            doc.setDrawColor(200, 210, 220);
+            doc.line(15, 29, 195, 29);
+
+            // Bilgi Alanı
+            doc.setFontSize(10);
+            doc.setTextColor(40, 40, 40);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("Seri No:", 15, 36);
+            doc.setFont("helvetica", "normal");
+            doc.text(trToAscii(activeTalepData.seriNo || ''), 35, 36);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Olusturan:", 115, 36);
+            doc.setFont("helvetica", "normal");
+            doc.text(trToAscii(activeTalepData.olusturan || '-'), 138, 36);
+
+            const tarihStr = activeTalepData.createdAt ? new Date(activeTalepData.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : '-';
+            doc.setFont("helvetica", "bold");
+            doc.text("Tarih:", 15, 42);
+            doc.setFont("helvetica", "normal");
+            doc.text(tarihStr, 35, 42);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Durum:", 115, 42);
+            doc.setFont("helvetica", "normal");
+            doc.text(trToAscii(activeTalepData.durum || 'Bekliyor'), 138, 42);
+
+            // Tablo Başlığı
+            let y = 52;
+            doc.setFillColor(240, 243, 246);
+            doc.rect(15, y - 4, 180, 8, "F");
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(30, 40, 50);
+            doc.text("Urun Kodu", 18, y);
+            doc.text("Urun Tanimi", 55, y);
+            doc.text("Talep", 115, y);
+            doc.text("Teslim", 138, y);
+            doc.text("Toplam Tutar", 160, y);
+
+            y += 8;
+            doc.setFont("helvetica", "normal");
+            
+            let genelToplam = 0;
+
+            activeTalepData.kalemler.forEach((k) => {
+                const gelen = k.teslimAlinan !== undefined ? k.teslimAlinan : k.miktar;
+                const tutar = k.toplamTutar || 0;
+                genelToplam += tutar;
+
+                doc.text(trToAscii(k.urunKodu || ''), 18, y);
+                doc.text(trToAscii(k.urunTanimi || '').substring(0, 24), 55, y);
+                doc.text(`${k.miktar} ${trToAscii(k.olcuBirimi || '')}`, 115, y);
+                doc.text(`${gelen} ${trToAscii(k.olcuBirimi || '')}`, 138, y);
+                doc.text(`${tutar.toFixed(2)} TL`, 160, y);
+
+                y += 7;
+                doc.setLineWidth(0.1);
+                doc.setDrawColor(230, 230, 230);
+                doc.line(15, y - 2, 195, y - 2);
+
+                if (y > 270) { doc.addPage(); y = 20; }
+            });
+
+            // Alt Toplam
+            y += 6;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(20, 30, 40);
+            doc.text(trToAscii(`GENEL TOPLAM: ${genelToplam.toFixed(2)} TL`), 120, y);
+
+            doc.save(`${activeTalepData.seriNo}-irsaliye.pdf`);
+        });
+
+        initApp();
+    </script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yeni Satınalma Talebi - Mobil İşletme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative overflow-x-hidden border-x border-slate-800/50 shadow-2xl">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="p-4 pt-6 glass-card border-b border-slate-800 sticky top-0 z-30">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <a href="satinalma.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Geri Dön">
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
+                </a>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cart-plus text-rose-400"></i>
+                        <span>TALEP OLUŞTURMA</span>
+                    </h2>
+                    <p id="seriNoTag" class="text-[10px] font-mono text-rose-400 font-semibold">SERİ NO: YÜKLENİYOR...</p>
+                </div>
+            </div>
+            
+            <button type="button" id="btnLogout" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Çıkış Yap">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 pb-28 overflow-y-auto space-y-4">
+        
+        <!-- Ürün Ekle Butonu -->
+        <button type="button" id="btnOpenProductModal" class="w-full py-3.5 bg-rose-600 hover:bg-rose-500 active-scale text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Ürün Ekle (Tanımlı Ürünlerden Seç)</span>
+        </button>
+
+        <!-- Eklenen Kalemler Listesi -->
+        <div class="space-y-2">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Seçilen Kalemler</h3>
+                <span id="kalemCount" class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">0 Kalem</span>
+            </div>
+
+            <div id="selectedItemsList" class="space-y-2.5">
+                <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[160px]">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-base mb-2">
+                        <i class="fa-solid id-card fa-basket-shopping"></i>
+                    </div>
+                    <h4 class="text-xs font-semibold text-slate-300">Sepet Boş</h4>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Talep için yukarıdan ürün ekleyin.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ALT SABİT OLUŞTUR BUTONU -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 glass-card border-t border-slate-800 z-20">
+        <button type="button" id="btnSaveTalep" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active-scale text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-check text-xs"></i>
+            <span>Satın Alma Talebi Oluştur</span>
+        </button>
+    </div>
+
+    <!-- TANIMLI ÜRÜNLERİ SEÇME MODALI -->
+    <div id="productSelectModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 my-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                <h3 class="font-bold text-slate-200 text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-rose-400"></i> Ürün Seç ve Miktar Gir
+                </h3>
+                <button type="button" id="btnCloseProductModal" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Arama Çubuğu -->
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-[11px]"></i>
+                <input type="text" id="modalSearchInput" placeholder="Ürün ara..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500">
+            </div>
+
+            <!-- Tanımlı Ürünlerin Resimli Listesi -->
+            <div id="modalProductList" class="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                <!-- Dinamik ürünler -->
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let currentUserEmail = "";
+        let generatedSeriNo = "";
+        let selectedItems = []; // Sepete eklenen kalemler
+        let allTanimliProducts = []; // Tüm tanımlı ürünler cache
+
+        async function initApp() {
+            if (typeof firebaseConfig === 'undefined') { window.location.href = "index.html"; return; }
+            const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    currentUserEmail = user.email;
+                    generateSeriNo();
+                    await fetchTanimliProducts();
+                } else {
+                    window.location.href = "index.html";
+                }
+            });
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        });
+
+        // Otomatik Seri No Üretme (Örn: SAT-20261030-001)
+        async function generateSeriNo() {
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0,10).replace(/-/g,'');
+            
+            try {
+                const snap = await getDocs(collection(db, "satinalma_talepleri"));
+                const count = snap.size + 1;
+                const paddedCount = String(count).padStart(3, '0');
+                generatedSeriNo = `SAT-${dateStr}-${paddedCount}`;
+                document.getElementById('seriNoTag').textContent = `SERİ NO: ${generatedSeriNo}`;
+            } catch (err) {
+                generatedSeriNo = `SAT-${dateStr}-001`;
+                document.getElementById('seriNoTag').textContent = `SERİ NO: ${generatedSeriNo}`;
+            }
+        }
+
+        // Tanımlı Ürünleri Çekme
+        async function fetchTanimliProducts() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "tanimli_urunler"));
+                allTanimliProducts = [];
+                querySnapshot.forEach((doc) => {
+                    allTanimliProducts.push({ id: doc.id, ...doc.data() });
+                });
+            } catch (err) {
+                console.error("Ürünler çekilemedi:", err);
+            }
+        }
+
+        // Modalı Aç / Kapat
+        const modal = document.getElementById('productSelectModal');
+        document.getElementById('btnOpenProductModal').addEventListener('click', () => {
+            renderModalProducts(allTanimliProducts);
+            modal.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseProductModal').addEventListener('click', () => modal.classList.add('hidden'));
+
+        // Modal İçi Ürün Listeleme
+        function renderModalProducts(products) {
+            const listEl = document.getElementById('modalProductList');
+            listEl.innerHTML = "";
+
+            if (products.length === 0) {
+                listEl.innerHTML = `<p class="text-center text-xs text-slate-500 py-4">Tanımlı ürün bulunamadı. Önce ürünler sayfasından ürün ekleyin.</p>`;
+                return;
+            }
+
+            products.forEach(p => {
+                let badgeColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (p.malGrubu === "YARI MAMÜL") badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                if (p.malGrubu === "SARF MALZEME") badgeColor = "bg-purple-500/10 text-purple-400 border-purple-500/20";
+
+                listEl.innerHTML += `
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between space-x-2">
+                        <div class="flex items-center space-x-2.5 min-w-0 flex-1">
+                            <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-700 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                ${p.gorsel ? `<img src="${p.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600"></i>`}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-[9px] font-mono text-blue-400 font-semibold">${p.urunKodu}</span>
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded-full border ${badgeColor}">${p.malGrubu}</span>
+                                </div>
+                                <h5 class="text-xs font-bold text-slate-100 truncate">${p.urunTanimi}</h5>
+                                <span class="text-[10px] text-slate-400">Birim: ${p.olcuBirimi}</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="window.selectProduct('${p.id}')" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-medium flex-shrink-0 active-scale">
+                            Seç
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // Arama Filtresi
+        document.getElementById('modalSearchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            const filtered = allTanimliProducts.filter(p => 
+                (p.urunKodu && p.urunKodu.toLowerCase().includes(val)) ||
+                (p.urunTanimi && p.urunTanimi.toLowerCase().includes(val))
+            );
+            renderModalProducts(filtered);
+        });
+
+        // Ürün Seçilince Miktar Sorma ve Sepete Ekleme
+        window.selectProduct = function(id) {
+            const product = allTanimliProducts.find(p => p.id === id);
+            if (!product) return;
+
+            const miktarStr = prompt(`${product.urunTanimi} (${product.olcuBirimi}) için miktar giriniz:`, "1");
+            if (!miktarStr || isNaN(miktarStr) || Number(miktarStr) <= 0) return;
+
+            selectedItems.push({
+                urunKodu: product.urunKodu,
+                urunTanimi: product.urunTanimi,
+                malGrubu: product.malGrubu,
+                olcuBirimi: product.olcuBirimi,
+                gorsel: product.gorsel || "",
+                miktar: Number(miktarStr)
+            });
+
+            modal.classList.add('hidden');
+            renderSelectedItems();
+        };
+
+        // Seçilen Kalemleri Listeleme
+        function renderSelectedItems() {
+            const container = document.getElementById('selectedItemsList');
+            container.innerHTML = "";
+            document.getElementById('kalemCount').textContent = `${selectedItems.length} Kalem`;
+
+            if (selectedItems.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[160px]">
+                        <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-base mb-2">
+                            <i class="fa-solid fa-basket-shopping"></i>
+                        </div>
+                        <h4 class="text-xs font-semibold text-slate-300">Sepet Boş</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Talep için yukarıdan ürün ekleyin.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            selectedItems.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="glass-card p-3 rounded-2xl border border-slate-800 flex items-center justify-between space-x-2">
+                        <div class="flex items-center space-x-2.5 min-w-0 flex-1">
+                            <div class="w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                ${item.gorsel ? `<img src="${item.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600"></i>`}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[9px] font-mono text-blue-400">${item.urunKodu}</span>
+                                <h5 class="text-xs font-bold text-slate-100 truncate">${item.urunTanimi}</h5>
+                                <span class="text-[10px] text-rose-400 font-semibold">${item.miktar} ${item.olcuBirimi}</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="window.removeItem(${index})" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center flex-shrink-0 active-scale">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        window.removeItem = function(index) {
+            selectedItems.splice(index, 1);
+            renderSelectedItems();
+        };
+
+        // Satın Alma Talebini Kaydetme
+        document.getElementById('btnSaveTalep').addEventListener('click', async () => {
+            if (selectedItems.length === 0) {
+                alert("Lütfen en az bir ürün ekleyin!");
+                return;
+            }
+
+            try {
+                document.getElementById('btnSaveTalep').textContent = "Kaydediliyor...";
+                
+                await addDoc(collection(db, "satinalma_talepleri"), {
+                    seriNo: generatedSeriNo,
+                    olusturan: currentUserEmail,
+                    kalemler: selectedItems,
+                    createdAt: new Date()
+                });
+
+                alert("Satınalma talebi başarıyla oluşturuldu!");
+                window.location.href = "satinalma.html";
+
+            } catch (err) {
+                console.error("Talep kayıt hatası:", err);
+                alert("Hata oluştu: " + err.message);
+                document.getElementById('btnSaveTalep').textContent = "Satın Alma Talebi Oluştur";
+            }
+        });
+
+        initApp();
+    </script>
+</body>
+</html>
