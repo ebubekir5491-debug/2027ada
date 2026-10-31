@@ -199,7 +199,7 @@
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let auth = null;
         let db = null;
@@ -344,7 +344,6 @@
             try {
                 document.getElementById('btnAddToList').textContent = "Stok Kontrol Ediliyor...";
 
-                // İndeks hatası almamak için sadece "durum" ile filtreliyoruz, sıralamayı JS tarafında yapacağız
                 const satinalmaSnap = await getDocs(query(collection(db, "satinalma_talepleri"), where("durum", "==", "Tamamlandı")));
                 
                 let taleplerListesi = [];
@@ -354,11 +353,10 @@
                     taleplerListesi.push({ ...talep, parsedDate: tDate });
                 });
 
-                // JavaScript tarafında tarihe göre artan (eskiden yeniye) sıralama
                 taleplerListesi.sort((a, b) => a.parsedDate - b.parsedDate);
 
                 let depoStokMap = {};
-                let sonBirimFiyatlar = {}; // En son tarihli satın alma birim fiyatı
+                let sonBirimFiyatlar = {};
 
                 taleplerListesi.forEach(talep => {
                     if (talep.kalemler && Array.isArray(talep.kalemler)) {
@@ -373,7 +371,6 @@
                             }
                             depoStokMap[kod] += miktar;
 
-                            // Her döngüde güncellendiği için en son işlemdeki fiyat kalır
                             if (miktar > 0 && birimFiyat > 0) {
                                 sonBirimFiyatlar[kod] = birimFiyat;
                             }
@@ -526,18 +523,41 @@
                                 ${eklentiBadge}
                             </div>
 
-                            <div class="pt-1.5 border-t border-slate-800/80 space-y-1">
-                                <span class="text-[8px] font-semibold text-slate-400 uppercase tracking-wider block">Malzemeler & Maliyet:</span>
-                                ${malzemelerHtml}
+                            <!-- GİZLİ / AÇILIR MALZEMELER LİSTESİ -->
+                            <div class="pt-1 border-t border-slate-800/80">
+                                <button type="button" onclick="window.toggleMalzemeListesi('${siparisId}')" class="w-full py-1 bg-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-slate-200 text-[9px] font-semibold rounded-lg border border-slate-800 flex items-center justify-center gap-1 transition-all">
+                                    <i id="icon-${siparisId}" class="fa-solid fa-chevron-down text-[8px]"></i>
+                                    <span id="text-${siparisId}">Malzemeler & Maliyeti Göster</span>
+                                </button>
+                                <div id="malzeme-list-${siparisId}" class="hidden space-y-1 mt-1.5 pt-1 border-t border-slate-800/40">
+                                    ${malzemelerHtml}
+                                </div>
                             </div>
                         </div>
                     `;
                     container.innerHTML += cardHtml;
                 });
 
-                document.getElementById('totalCostTag').textContent = `${Math.round(genelSepetMaliyeti * 100) / 100} TL`;
+                document.getElementById('totalCostTag`].textContent = `${Math.round(genelSepetMaliyeti * 100) / 100} TL`;
             });
         }
+
+        // Akordeon Açma / Kapama Fonksiyonu
+        window.toggleMalzemeListesi = function(id) {
+            const listDiv = document.getElementById(`malzeme-list-${id}`);
+            const iconElem = document.getElementById(`icon-${id}`);
+            const textElem = document.getElementById(`text-${id}`);
+
+            if (listDiv.classList.contains('hidden')) {
+                listDiv.classList.remove('hidden');
+                iconElem.className = "fa-solid fa-chevron-up text-[8px]";
+                textElem.textContent = "Malzemeler & Maliyeti Gizle";
+            } else {
+                listDiv.classList.add('hidden');
+                iconElem.className = "fa-solid fa-chevron-down text-[8px]";
+                textElem.textContent = "Malzemeler & Maliyeti Göster";
+            }
+        };
 
         window.deleteSiparisItem = async function(id) {
             if (confirm("Bu kalemi silmek istediğinize emin misiniz?")) {
