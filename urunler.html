@@ -109,7 +109,7 @@
                         <label class="text-[11px] text-slate-400">Malzeme Kodları, Renk ve Formül</label>
                         <button type="button" id="btnAddRow" class="text-[10px] text-blue-400 hover:text-blue-300 font-semibold"><i class="fa-solid fa-plus"></i> Satır Ekle</button>
                     </div>
-                    <p class="text-[10px] text-slate-500 mb-2">Değişkenler: <code class="text-blue-400 font-bold">EN</code>, <code class="text-blue-400 font-bold">BOY</code>, <code class="text-blue-400 font-bold">ADET</code>. Örn: <span class="text-slate-300 font-mono">(EN*BOY)/10000*ADET</span> (M² için)</p>
+                    <p class="text-[10px] text-slate-500 mb-2">Değişkenler: <code class="text-blue-400 font-bold">EN</code>, <code class="text-blue-400 font-bold">BOY</code>, <code class="text-blue-400 font-bold">ADET</code>. Renk boş bırakılırsa her renkte geçerli olur.</p>
 
                     <div id="kodAdetContainer" class="space-y-2">
                         <div class="grid grid-cols-12 gap-1.5 row-item items-center">
@@ -127,7 +127,6 @@
                             <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
                                 <option value="Adet">Adet</option>
                                 <option value="Mt">Mt</option>
-                                <option value="M²">M²</option>
                             </select>
                             <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                         </div>
@@ -218,7 +217,6 @@
                     <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
                         <option value="Adet">Adet</option>
                         <option value="Mt">Mt</option>
-                        <option value="M²">M²</option>
                     </select>
                     <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
@@ -249,7 +247,6 @@
                 <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
                     <option value="Adet">Adet</option>
                     <option value="Mt">Mt</option>
-                    <option value="M²">M²</option>
                 </select>
                 <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
             `;
@@ -295,7 +292,6 @@
                         <select class="col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-slate-300 text-[10px] focus:outline-none focus:border-blue-500 row-birim">
                             <option value="Adet" ${item.birim === "Adet" ? "selected" : ""}>Adet</option>
                             <option value="Mt" ${item.birim === "Mt" ? "selected" : ""}>Mt</option>
-                            <option value="M²" ${item.birim === "M²" ? "selected" : ""}>M²</option>
                         </select>
                         <button type="button" onclick="this.parentElement.remove()" class="col-span-1 h-8 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     `;
