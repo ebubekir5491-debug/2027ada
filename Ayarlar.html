@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Ayarları - Mobil & Masaüstü İşletme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row overflow-x-hidden">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- SOL YAN MENÜ -->
+    <aside class="w-full md:w-80 bg-slate-900/90 border-r border-slate-800 flex-shrink-0 flex flex-col justify-between sticky top-0 md:h-screen z-40">
+        <div>
+            <!-- ÜST BAŞLIK & GERİ -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-indigo-400"></i>
+                            <span>SİSTEM AYARLARI</span>
+                        </h1>
+                        <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[150px]">Kullanıcı</p>
+                    </div>
+                </div>
+
+                <button type="button" id="btnLogout" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale md:hidden" title="Çıkış">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                </button>
+            </div>
+
+            <!-- SEKMELER -->
+            <nav class="p-3 space-y-1.5 overflow-x-auto md:overflow-y-auto flex md:flex-col gap-1.5 md:gap-0 no-scrollbar">
+                
+                <button type="button" onclick="showTab('urun-tanimla')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-all border border-transparent hover:bg-slate-800/60 active-scale" data-tab="urun-tanimla">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-box-open text-indigo-400 w-4 text-center"></i>
+                        <span>ÜRÜN TANIMLA</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500 hidden md:block"></i>
+                </button>
+
+                <button type="button" onclick="showTab('maliyet-ayarlari')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-all border border-transparent hover:bg-slate-800/60 active-scale" data-tab="maliyet-ayarlari">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-coins text-emerald-400 w-4 text-center"></i>
+                        <span>ÜRÜN MALİYET AYARLARI</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500 hidden md:block"></i>
+                </button>
+
+                <button type="button" onclick="showTab('acilir-listeler')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-all border border-transparent hover:bg-slate-800/60 active-scale" data-tab="acilir-listeler">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-list-check text-purple-400 w-4 text-center"></i>
+                        <span>TÜM AÇILIR LİSTE VERİLERİ</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500 hidden md:block"></i>
+                </button>
+
+                <button type="button" onclick="showTab('yetkilendirme')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-all border border-transparent hover:bg-slate-800/60 active-scale" data-tab="yetkilendirme">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-user-shield text-rose-400 w-4 text-center"></i>
+                        <span>YETKİLENDİRME PANELİ</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500 hidden md:block"></i>
+                </button>
+
+            </nav>
+        </div>
+
+        <div class="p-3 border-t border-slate-800 hidden md:block">
+            <button type="button" id="btnLogoutDesktop" class="w-full py-2.5 bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 border border-slate-700/80 rounded-xl text-xs font-semibold transition-all active-scale flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Oturumu Kapat</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- SAĞ İÇERİK ALANI -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-6xl space-y-6">
+
+        <!-- YÖNETİCİ DÜZENLEME MODU PANELİ -->
+        <div id="adminEditToggleContainer" class="glass-card p-3 rounded-2xl border border-indigo-500/30 flex items-center justify-between hidden">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-user-gear text-indigo-400 text-sm"></i>
+                <div>
+                    <h3 class="text-xs font-bold text-white">Yönetici Düzenleme Modu</h3>
+                    <p class="text-[10px] text-slate-400">Başlıkları dinamik açılır listeye dönüştürmek için mod anahtarını açın.</p>
+                </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="toggleAdminEditMode" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+
+        <!-- 1. ÜRÜN TANIMLA -->
+        <section id="tab-urun-tanimla" class="tab-content space-y-4 hidden">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-box-open text-indigo-400"></i> Ürün Tanımlama Modülü
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Bilgisayardan resim seçerek ürün ekleyin.</p>
+                </div>
+            </div>
+            
+            <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                    
+                    <!-- ÜRÜN KODU -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-slate-400 font-semibold">Ürün Kodu</label>
+                            <label class="admin-checkbox-label hidden text-[9px] text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" class="admin-toggle-dropdown rounded border-slate-800" data-target-title="Ürün Kodu">
+                                <span>Açılır Liste</span>
+                            </label>
+                        </div>
+                        <div id="container_Urun_Kodu" class="dynamic-field-wrapper" data-dynamic-field="Ürün Kodu" data-placeholder="Örn: PR-101">
+                            <input type="text" id="dynamic_field_urun_kodu" placeholder="Örn: PR-101" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- MALZEME TANIMI -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-slate-400 font-semibold">Malzeme Tanımı</label>
+                            <label class="admin-checkbox-label hidden text-[9px] text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" class="admin-toggle-dropdown rounded border-slate-800" data-target-title="Malzeme Tanımı">
+                                <span>Açılır Liste</span>
+                            </label>
+                        </div>
+                        <div id="container_Malzeme_Tanimi" class="dynamic-field-wrapper" data-dynamic-field="Malzeme Tanımı" data-placeholder="Örn: Kalın Seri Profili">
+                            <input type="text" id="dynamic_field_malzeme_tanimi" placeholder="Örn: Kalın Seri Profili" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- RENK -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-slate-400 font-semibold">Renk</label>
+                            <label class="admin-checkbox-label hidden text-[9px] text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" class="admin-toggle-dropdown rounded border-slate-800" data-target-title="Renk">
+                                <span>Açılır Liste</span>
+                            </label>
+                        </div>
+                        <div id="container_Renk" class="dynamic-field-wrapper" data-dynamic-field="Renk" data-placeholder="Örn: Antrasit Gri">
+                            <input type="text" id="dynamic_field_renk" placeholder="Örn: Antrasit Gri" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- MAL GRUBU -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-slate-400 font-semibold">Mal Grubu</label>
+                            <label class="admin-checkbox-label hidden text-[9px] text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" class="admin-toggle-dropdown rounded border-slate-800" data-target-title="Mal Grubu">
+                                <span>Açılır Liste</span>
+                            </label>
+                        </div>
+                        <div id="container_Mal_Grubu" class="dynamic-field-wrapper" data-dynamic-field="Mal Grubu" data-placeholder="Örn: Alüminyum">
+                            <input type="text" id="dynamic_field_mal_grubu" placeholder="Örn: Alüminyum" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- ÖLÇÜ BİRİMİ -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-slate-400 font-semibold">Ölçü Birimi</label>
+                            <label class="admin-checkbox-label hidden text-[9px] text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" class="admin-toggle-dropdown rounded border-slate-800" data-target-title="Ölçü Birimi">
+                                <span>Açılır Liste</span>
+                            </label>
+                        </div>
+                        <div id="container_Olcu_Birimi" class="dynamic-field-wrapper" data-dynamic-field="Ölçü Birimi" data-placeholder="Örn: Metre">
+                            <input type="text" id="dynamic_field_olcu_birimi" placeholder="Örn: Metre" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RESİM SEÇME ALANI -->
+                <div class="border-t border-slate-800/80 pt-3 space-y-2">
+                    <label class="text-[10px] text-slate-400 block font-semibold">Ürün Görseli Seç</label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                        <div class="md:col-span-2">
+                            <input type="file" id="fileGorselInput" accept="image/*" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                            <p class="text-[10px] text-slate-500 mt-1">Bilgisayarınızdan bir resim dosyası seçin (JPG, PNG vb.)</p>
+                        </div>
+                        <div class="flex justify-center">
+                            <div class="w-24 h-24 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center relative shadow-inner">
+                                <img id="imgPreview" src="" class="w-full h-full object-cover hidden">
+                                <span id="imgPlaceholder" class="text-[10px] text-slate-500 text-center px-1">Önizleme Yok</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="btnSaveUrunTanim" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale">
+                    Ürün Tanımını Kaydet
+                </button>
+            </div>
+
+            <!-- KAYDEDİLEN ÜRÜNLER LİSTESİ -->
+            <div class="space-y-3 pt-2">
+                <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-list"></i> Tanımlanan Ürünler Listesi
+                </h3>
+                <div id="tanimliUrunlerListContainer" class="space-y-2">
+                    <div class="text-slate-500 italic text-xs">Yükleniyor...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ÜRÜN MALİYET & FORMÜL AYARLARI (KOMPAKT MİKRO TASARIM) -->
+        <section id="tab-maliyet-ayarlari" class="tab-content space-y-4 hidden">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-coins text-emerald-400"></i> Ürün Maliyet & Reçete Grubu Yönetimi
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Hazır ürün seçin, reçete kalemlerini tek satırda pratik şekilde yönetin.</p>
+                </div>
+            </div>
+
+            <!-- FORMÜL OLUŞTURMA ALANI -->
+            <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div class="flex flex-col md:flex-row items-center gap-3">
+                    <div class="flex-1 w-full">
+                        <label class="block text-[10px] text-slate-400 font-semibold mb-1">Maliyet/Reçete Çıkarılacak Hazır Ürünü Seçin</label>
+                        <select id="selectFormulUrun" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                            <option value="">-- Hazır Ürün Seçiniz --</option>
+                        </select>
+                    </div>
+                    <div class="w-full md:w-auto pt-4 md:pt-0 flex gap-2">
+                        <button type="button" id="btnYeniFormulSatiriEkle" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Reçeteye Malzeme / Profil Ekle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TEK REÇETE GRUBU KONTEYNERİ (TEK SATIR MİKRO GÖRÜNÜM) -->
+                <div class="glass-card p-3 rounded-xl border border-emerald-500/20 space-y-2">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i> Seçili Ürün Reçete Kalemleri Grubu
+                        </span>
+                        <span id="txtGrupKalemSayisi" class="text-[10px] text-slate-400 font-mono">0 Kalem</span>
+                    </div>
+
+                    <div id="formulSatirlariContainer" class="space-y-1.5">
+                        <div class="text-slate-500 italic text-xs text-center py-4">Lütfen yukarıdan bir hazır ürün seçin.</div>
+                    </div>
+                </div>
+
+                <!-- TEST HESAPLAMA PANELİ VE KAYDET -->
+                <div id="maliyetOzetBox" class="bg-slate-900/90 border border-emerald-500/30 p-3 rounded-xl space-y-2 hidden">
+                    <div class="text-xs font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-emerald-400"></i> Test ve Örnek Sipariş Ölçüleri
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                        <div>
+                            <label class="block text-[9px] text-slate-400">Örnek Renk</label>
+                            <select id="testRenk" onchange="window.renderFormulSatirlari()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100">
+                                <option value="">Tümü / Herhangi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-slate-400">Örnek Tül</label>
+                            <select id="testTul" onchange="window.renderFormulSatirlari()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100">
+                                <option value="">Tümü / Herhangi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-slate-400">En (cm)</label>
+                            <input type="number" id="testEn" value="100" oninput="window.renderFormulSatirlari()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-slate-400">Boy (cm)</label>
+                            <input type="number" id="testBoy" value="200" oninput="window.renderFormulSatirlari()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-slate-400">Adet</label>
+                            <input type="number" id="testAdet" value="1" oninput="window.renderFormulSatirlari()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-bold">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+                        <div>
+                            <span class="text-xs text-slate-400 block">Hesaplanan Tahmini Birim Maliyet</span>
+                            <h3 id="txtToplamMaliyet" class="text-base font-bold text-emerald-400">0,00 ₺</h3>
+                        </div>
+                        <button type="button" id="btnFormulleriKaydet" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-2">
+                            <i class="fa-solid fa-check"></i> Reçete Grubunu Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KAYDEDİLEN REÇETELER LİSTESİ -->
+            <div class="space-y-3 pt-3 border-t border-slate-800">
+                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive"></i> Kaydedilen Tüm Ürün Reçete Grupları
+                </h3>
+                <div id="kayitliRecetelerListContainer" class="space-y-2">
+                    <div class="text-slate-500 italic text-xs">Kayıtlı reçeteler yükleniyor...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. TÜM AÇILIR LİSTE VERİLERİ -->
+        <section id="tab-acilir-listeler" class="tab-content space-y-4 hidden">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-purple-400"></i> Açılır Liste Verileri ve Başlık Yönetimi
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Ürün Tanımla sayfasında "Açılır Liste" dediğiniz başlıklar buraya otomatik gelir. Altına veri ekleyerek listeyi besleyebilirsiniz.</p>
+                </div>
+            </div>
+
+            <!-- YENİ BAŞLIK EKLEME FORMU -->
+            <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider">Manuel Yeni Başlık Ekle</h3>
+                <div class="flex gap-2 text-xs">
+                    <input type="text" id="inputYeniBaslik" placeholder="Örn: Hazır Ürünler, Özel Kategori" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-purple-500">
+                    <button type="button" id="btnBaslikEkle" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all active-scale">
+                        + Başlık Oluştur
+                    </button>
+                </div>
+            </div>
+
+            <!-- LİSTELER CONTAINER -->
+            <div id="dynamicListsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+        </section>
+
+        <!-- 4. GELİŞMİŞ YETKİLENDİRME PANELİ -->
+        <section id="tab-yetkilendirme" class="tab-content space-y-4 hidden">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-rose-400"></i> Kullanıcı Yetkilendirme Paneli
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Sisteme giriş yapan kullanıcıların rolleri ve detaylı erişim yetkileri.</p>
+                </div>
+            </div>
+
+            <div id="usersListContainer" class="space-y-3 text-xs">
+                <div class="text-slate-500 italic">Kullanıcılar yükleniyor...</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot, query, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let currentUserData = null;
+        let globalAcilirListeler = {}; 
+        let selectedImageBase64 = "";
+        let urunMaliyetSatirlari = [];
+        let depoStokFiyatlari = {};
+
+        function hideOverlay() {
+            const overlay = document.getElementById('authCheckOverlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        async function initApp() {
+            try {
+                if (typeof firebaseConfig !== 'undefined') {
+                    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        try {
+                            if (user) {
+                                document.getElementById('userEmailTag').textContent = user.email;
+                                await ensureUserRegistered(user);
+                                loadUsersPermissions();
+                            }
+                            loadAcilirListeler();
+                            loadTanimliUrunler();
+                            loadDepoStokFiyatlari();
+                            loadKayitliRecetelerListesi();
+                        } catch (e) {
+                            console.error("Auth state handling error:", e);
+                        } finally {
+                            hideOverlay();
+                        }
+                    });
+                } else {
+                    hideOverlay();
+                }
+            } catch (err) {
+                console.error("Init Error:", err);
+                hideOverlay();
+            }
+
+            setTimeout(() => { hideOverlay(); }, 1000);
+        }
+
+        const handleLogout = async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        };
+
+        document.getElementById('btnLogout').addEventListener('click', handleLogout);
+        document.getElementById('btnLogoutDesktop').addEventListener('click', handleLogout);
+
+        async function ensureUserRegistered(user) {
+            try {
+                const userRef = doc(db, "kullanicilar", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    const newUser = {
+                        email: user.email,
+                        rol: "Sadece Okuma",
+                        yetkiler: { tumYetkiler: false, yazma: false, okuma: true },
+                        kayitTarihi: new Date()
+                    };
+                    await setDoc(userRef, newUser);
+                    currentUserData = newUser;
+                } else {
+                    currentUserData = userSnap.data();
+                }
+
+                if (currentUserData.yetkiler && currentUserData.yetkiler.tumYetkiler) {
+                    document.getElementById('adminEditToggleContainer').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminEditToggleContainer').classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("User reg error:", e);
+            }
+        }
+
+        function loadDepoStokFiyatlari() {
+            try {
+                onSnapshot(collection(db, "depo_stoklari"), (snapshot) => {
+                    depoStokFiyatlari = {};
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const kod = (data.urunKodu || data.malzemeTanimi || "BILINMEYEN").trim();
+                        const renk = (data.renk || "").trim();
+                        const malGrubu = (data.malGrubu || "").trim();
+                        const malzemeTanimi = (data.malzemeTanimi || "").trim();
+                        
+                        const benzersizAnahtar = `${kod}_${malzemeTanimi}_${renk}_${malGrubu}`;
+
+                        depoStokFiyatlari[benzersizAnahtar] = {
+                            urunKodu: kod,
+                            malzemeTanimi: malzemeTanimi,
+                            renk: renk,
+                            malGrubu: malGrubu,
+                            birimFiyat: parseFloat(data.birimFiyat) || 0,
+                            olcuBirimi: data.olcuBirimi || "Adet"
+                        };
+                    });
+                    renderFormulSatirlari();
+                });
+            } catch (e) {
+                console.error("Depo stok fiyat yükleme hatası:", e);
+            }
+        }
+
+        document.getElementById('toggleAdminEditMode').addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            document.querySelectorAll('.admin-checkbox-label').forEach(el => {
+                if (isChecked) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+            updateAdminCheckboxesState();
+        });
+
+        document.querySelectorAll('.admin-toggle-dropdown').forEach(chk => {
+            chk.addEventListener('change', async (e) => {
+                const targetTitle = e.target.getAttribute('data-target-title');
+                const safeId = targetTitle.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+                
+                try {
+                    const docRef = doc(db, "acilir_liste_ayarlari", safeId);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (e.target.checked) {
+                        if (!docSnap.exists()) {
+                            await setDoc(docRef, { baslik: targetTitle, veriler: [] });
+                        }
+                        alert(`"${targetTitle}" başarıyla açılır liste yapıldı ve "TÜM AÇILIR LİSTE VERİLERİ" sayfasına eklendi!`);
+                    }
+                } catch (err) {
+                    alert("Hata: " + err.message);
+                }
+            });
+        });
+
+        function updateAdminCheckboxesState() {
+            document.querySelectorAll('.admin-toggle-dropdown').forEach(chk => {
+                const targetTitle = chk.getAttribute('data-target-title');
+                const safeId = targetTitle.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+                chk.checked = !!globalAcilirListeler[safeId];
+            });
+        }
+
+        const fileGorselInput = document.getElementById('fileGorselInput');
+        const imgPreview = document.getElementById('imgPreview');
+        const imgPlaceholder = document.getElementById('imgPlaceholder');
+
+        fileGorselInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    selectedImageBase64 = evt.target.result;
+                    imgPreview.src = selectedImageBase64;
+                    imgPreview.classList.remove('hidden');
+                    imgPlaceholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('btnSaveUrunTanim').addEventListener('click', async () => {
+            const getFieldVal = (title) => {
+                const safeId = title.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+                const el = document.getElementById(`dynamic_field_${safeId}`);
+                return el ? el.value.trim() : "";
+            };
+
+            const urunKodu = getFieldVal("Ürün Kodu");
+            const malzemeTanimi = getFieldVal("Malzeme Tanımı");
+            const renk = getFieldVal("Renk");
+            const malGrubu = getFieldVal("Mal Grubu");
+            const olcuBirimi = getFieldVal("Ölçü Birimi");
+
+            if (!urunKodu || !malzemeTanimi) {
+                alert("Lütfen Ürün Kodu ve Malzeme Tanımını doldurun!");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "tanimli_urunler"), {
+                    urunKodu: urunKodu,
+                    malzemeTanimi: malzemeTanimi,
+                    renk: renk,
+                    malGrubu: malGrubu,
+                    olcuBirimi: olcuBirimi,
+                    gorsel: selectedImageBase64,
+                    createdAt: new Date()
+                });
+                alert("Ürün başarıyla kaydedildi!");
+                
+                document.querySelectorAll('.dynamic-field-wrapper input, .dynamic-field-wrapper select').forEach(el => el.value = "");
+                fileGorselInput.value = "";
+                selectedImageBase64 = "";
+                imgPreview.classList.add('hidden');
+                imgPlaceholder.classList.remove('hidden');
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
+        });
+
+        function loadTanimliUrunler() {
+            try {
+                onSnapshot(collection(db, "tanimli_urunler"), (snapshot) => {
+                    const container = document.getElementById('tanimliUrunlerListContainer');
+                    container.innerHTML = "";
+
+                    if (snapshot.empty) {
+                        container.innerHTML = `<div class="text-slate-500 italic text-xs">Henüz tanımlanan ürün bulunmuyor.</div>`;
+                        return;
+                    }
+
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const docId = docSnap.id;
+
+                        let imgTag = data.gorsel 
+                            ? `<img src="${data.gorsel}" class="w-10 h-10 rounded-lg object-cover border border-slate-700">`
+                            : `<div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] text-slate-500">Yok</div>`;
+
+                        container.innerHTML += `
+                            <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 text-xs">
+                                <div class="flex items-center space-x-3">
+                                    ${imgTag}
+                                    <div>
+                                        <h4 class="font-bold text-white">${data.urunKodu} - ${data.malzemeTanimi}</h4>
+                                        <span class="text-[10px] text-slate-400">Grup: <strong>${data.malGrubu || 'Belirtilmemiş'}</strong> | Renk: <strong>${data.renk || 'Belirtilmemiş'}</strong> | Ölçü Birimi: <strong>${data.olcuBirimi || 'Belirtilmemiş'}</strong></span>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="window.deleteTanimliUrun('${docId}')" class="text-rose-400 hover:text-rose-300 p-2 text-xs" title="Ürünü Sil">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        `;
+                    });
+                });
+            } catch (e) {
+                console.error("Tanimli urunler load error:", e);
+            }
+        }
+
+        window.deleteTanimliUrun = async function(docId) {
+            if (confirm("Bu ürünü silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "tanimli_urunler", docId));
+                } catch (e) {
+                    alert("Silme hatası: " + e.message);
+                }
+            }
+        };
+
+        function loadUsersPermissions() {
+            try {
+                onSnapshot(collection(db, "kullanicilar"), (snapshot) => {
+                    const container = document.getElementById('usersListContainer');
+                    container.innerHTML = "";
+
+                    if (snapshot.empty) {
+                        container.innerHTML = `<div class="text-slate-500 italic">Henüz giriş yapan kullanıcı bulunmuyor.</div>`;
+                        return;
+                    }
+
+                    snapshot.forEach(docSnap => {
+                        const uData = docSnap.data();
+                        const uId = docSnap.id;
+                        const isTumYetkiler = uData.yetkiler?.tumYetkiler;
+                        const isYazma = uData.yetkiler?.yazma;
+
+                        container.innerHTML += `
+                            <div class="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-indigo-400 font-bold">
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-white text-xs">${uData.email}</h4>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${isTumYetkiler ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : (isYazma ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400')}">
+                                            ${isTumYetkiler ? 'Tüm Yetkiler (Yönetici)' : (isYazma ? 'Yazma Yetkisi var' : 'Sadece Okuma')}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap gap-1.5">
+                                    <button type="button" onclick="window.setRole('${uId}', 'ADMIN')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold transition-all active-scale">Tüm Yetkileri Ver</button>
+                                    <button type="button" onclick="window.setRole('${uId}', 'WRITE')" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] font-bold transition-all active-scale">Yazma Yetkisi</button>
+                                    <button type="button" onclick="window.setRole('${uId}', 'READ')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-[10px] font-bold transition-all active-scale">Okuma</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            } catch (e) {
+                console.error("Users perm load error:", e);
+            }
+        }
+
+        window.setRole = async function(userId, roleType) {
+            let yetkilerObj = { tumYetkiler: false, yazma: false, okuma: true };
+            let rolStr = "Sadece Okuma";
+
+            if (roleType === 'ADMIN') {
+                yetkilerObj = { tumYetkiler: true, yazma: true, okuma: true };
+                rolStr = "Tüm Yetkiler";
+            } else if (roleType === 'WRITE') {
+                yetkilerObj = { tumYetkiler: false, yazma: true, okuma: true };
+                rolStr = "Yazma Yetkili";
+            }
+
+            try {
+                await updateDoc(doc(db, "kullanicilar", userId), {
+                    rol: rolStr,
+                    yetkiler: yetkilerObj
+                });
+                alert("Kullanıcı yetkileri güncellendi!");
+            } catch (e) {
+                alert("Yetki güncelleme hatası: " + e.message);
+            }
+        };
+
+        function loadAcilirListeler() {
+            try {
+                onSnapshot(collection(db, "acilir_liste_ayarlari"), (snapshot) => {
+                    globalAcilirListeler = {};
+                    const container = document.getElementById('dynamicListsContainer');
+                    if (container) container.innerHTML = "";
+
+                    if (snapshot.empty) {
+                        if (container) container.innerHTML = `<div class="text-slate-500 italic col-span-2">Henüz açılır liste başlığı yok.</div>`;
+                        checkAndConvertAllDynamicFields();
+                        populeHazirUrunlerSelect();
+                        populeFiltreOptions();
+                        return;
+                    }
+
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const docId = docSnap.id; 
+                        const orijinalBaslik = data.baslik || docId; 
+                        const verilerDizisi = data.veriler || [];
+                        
+                        globalAcilirListeler[docId] = verilerDizisi;
+
+                        let itemsHtml = "";
+                        verilerDizisi.forEach((item, idx) => {
+                            itemsHtml += `
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <span class="font-mono text-slate-200">${item}</span>
+                                    <button type="button" onclick="window.removeListData('${docId}', ${idx})" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            `;
+                        });
+
+                        if (container) {
+                            container.innerHTML += `
+                                <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                        <h4 class="font-bold text-purple-400 text-xs uppercase tracking-wider">${orijinalBaslik}</h4>
+                                        <button type="button" onclick="window.deleteListCategory('${docId}')" class="text-rose-400 text-[10px] hover:underline">Kategoriyi Sil</button>
+                                    </div>
+                                    <div class="flex gap-1.5">
+                                        <input type="text" id="input_data_${docId}" placeholder="Yeni veri yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[11px] focus:outline-none focus:border-purple-500">
+                                        <button type="button" onclick="window.addListData('${docId}')" class="px-3 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 rounded-lg text-[10px] font-bold">+ Ekle</button>
+                                    </div>
+                                    <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                        ${itemsHtml || '<span class="text-[10px] text-slate-500 italic block">Henüz veri yok.</span>'}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    checkAndConvertAllDynamicFields();
+                    updateAdminCheckboxesState();
+                    populeHazirUrunlerSelect();
+                    populeFiltreOptions();
+                });
+            } catch (e) {
+                console.error("Acilir listeler load error:", e);
+            }
+        }
+
+        function populeHazirUrunlerSelect() {
+            const select = document.getElementById('selectFormulUrun');
+            if (!select) return;
+
+            const hazirUrunlerListesi = globalAcilirListeler['hazir_urunler'] || [];
+            let optionsHtml = `<option value="">-- Hazır Ürün Seçiniz --</option>`;
+            
+            hazirUrunlerListesi.forEach(urun => {
+                optionsHtml += `<option value="${urun}">${urun}</option>`;
+            });
+
+            select.innerHTML = optionsHtml;
+        }
+
+        function populeFiltreOptions() {
+            const selectTestRenk = document.getElementById('testRenk');
+            const selectTestTul = document.getElementById('testTul');
+
+            if (selectTestRenk) {
+                const renkler = globalAcilirListeler['renk'] || [];
+                let rHtml = `<option value="">Tümü / Herhangi</option>`;
+                renkler.forEach(r => rHtml += `<option value="${r}">${r}</option>`);
+                selectTestRenk.innerHTML = rHtml;
+            }
+
+            if (selectTestTul) {
+                const tuller = globalAcilirListeler['tul'] || globalAcilirListeler['tul_cesitleri'] || [];
+                let tHtml = `<option value="">Tümü / Herhangi</option>`;
+                tuller.forEach(t => tHtml += `<option value="${t}">${t}</option>`);
+                selectTestTul.innerHTML = tHtml;
+            }
+        }
+
+        document.getElementById('selectFormulUrun').addEventListener('change', async (e) => {
+            const selectedUrun = e.target.value;
+            const container = document.getElementById('formulSatirlariContainer');
+            const ozetBox = document.getElementById('maliyetOzetBox');
+
+            if (!selectedUrun) {
+                container.innerHTML = `<div class="text-slate-500 italic text-xs text-center py-4">Lütfen yukarıdan bir hazır ürün seçin.</div>`;
+                ozetBox.classList.add('hidden');
+                urunMaliyetSatirlari = [];
+                document.getElementById('txtGrupKalemSayisi').textContent = "0 Kalem";
+                return;
+            }
+
+            ozetBox.classList.remove('hidden');
+
+            try {
+                const docRef = doc(db, "urun_maliyet_receteleri", selectedUrun.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_'));
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    urunMaliyetSatirlari = docSnap.data().satirlar || [];
+                } else {
+                    urunMaliyetSatirlari = [];
+                }
+                renderFormulSatirlari();
+            } catch (err) {
+                console.error("Reçete yükleme hatası:", err);
+                urunMaliyetSatirlari = [];
+                renderFormulSatirlari();
+            }
+        });
+
+        document.getElementById('btnYeniFormulSatiriEkle').addEventListener('click', () => {
+            const selectUrun = document.getElementById('selectFormulUrun').value;
+            if (!selectUrun) {
+                alert("Lütfen önce reçete yazılacak hazır ürünü seçin!");
+                return;
+            }
+
+            urunMaliyetSatirlari.push({
+                depoMalzemesi: "",
+                renkKosulu: "HERHANGI", 
+                tulKosulu: "HERHANGI",
+                maliyetFormulu: "( [En] + [Boy] ) * 2 / 100 * [Adet]"
+            });
+
+            renderFormulSatirlari();
+        });
+
+        window.appendFormulToken = function(index, token) {
+            if (urunMaliyetSatirlari[index]) {
+                let existing = urunMaliyetSatirlari[index].maliyetFormulu || "";
+                if (existing && !existing.endsWith(" ") && token !== ")" && token !== " ") {
+                    existing += " ";
+                }
+                existing += token + " ";
+                urunMaliyetSatirlari[index].maliyetFormulu = existing.trim();
+                renderFormulSatirlari();
+            }
+        };
+
+        window.clearFormul = function(index) {
+            if (urunMaliyetSatirlari[index]) {
+                urunMaliyetSatirlari[index].maliyetFormulu = "";
+                renderFormulSatirlari();
+            }
+        };
+
+        /* MİKRO KOMPAKT REÇETE SATIRI RENDERLEME */
+        window.renderFormulSatirlari = function() {
+            const container = document.getElementById('formulSatirlariContainer');
+            if (!container) return;
+            container.innerHTML = "";
+
+            document.getElementById('txtGrupKalemSayisi').textContent = `${urunMaliyetSatirlari.length} Kalem`;
+
+            if (urunMaliyetSatirlari.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 italic text-xs text-center py-4">Bu ürün grubunda henüz malzeme eklenmemiş. "+ Reçeteye Malzeme / Profil Ekle" butonuna basın.</div>`;
+                document.getElementById('txtToplamMaliyet').textContent = "0,00 ₺";
+                return;
+            }
+
+            let toplamUrunMaliyeti = 0;
+            const depoAnahtarlari = Object.keys(depoStokFiyatlari);
+            const tanimliRenkler = globalAcilirListeler['renk'] || [];
+            const tanimliTuller = globalAcilirListeler['tul'] || globalAcilirListeler['tul_cesitleri'] || [];
+            
+            const seciliTestRenk = document.getElementById('testRenk')?.value || "";
+            const seciliTestTul = document.getElementById('testTul')?.value || "";
+            const testEn = parseFloat(document.getElementById('testEn')?.value) || 0;
+            const testBoy = parseFloat(document.getElementById('testBoy')?.value) || 0;
+            const testAdet = parseFloat(document.getElementById('testAdet')?.value) || 1;
+
+            urunMaliyetSatirlari.forEach((satir, idx) => {
+                let depoOptionsHtml = `<option value="">-- Depo Malzemesi --</option>`;
+                depoAnahtarlari.forEach(anahtar => {
+                    const st = depoStokFiyatlari[anahtar];
+                    let sel = (satir.depoMalzemesi === anahtar) ? "selected" : "";
+                    depoOptionsHtml += `<option value="${anahtar}" ${sel}>${st.urunKodu} - ${st.malzemeTanimi} (${st.renk || 'Renk Yok'})</option>`;
+                });
+
+                let renkOptionsHtml = `<option value="HERHANGI" ${satir.renkKosulu === 'HERHANGI' ? 'selected' : ''}>Tüm Renkler</option>`;
+                tanimliRenkler.forEach(r => {
+                    let sel = (satir.renkKosulu === r) ? "selected" : "";
+                    renkOptionsHtml += `<option value="${r}" ${sel}>${r}</option>`;
+                });
+
+                let tulOptionsHtml = `<option value="HERHANGI" ${satir.tulKosulu === 'HERHANGI' ? 'selected' : ''}>Tüm Tüller</option>`;
+                tanimliTuller.forEach(t => {
+                    let sel = (satir.tulKosulu === t) ? "selected" : "";
+                    tulOptionsHtml += `<option value="${t}" ${sel}>${t}</option>`;
+                });
+
+                let birimFiyat = 0;
+                if (satir.depoMalzemesi && depoStokFiyatlari[satir.depoMalzemesi]) {
+                    birimFiyat = depoStokFiyatlari[satir.depoMalzemesi].birimFiyat;
+                }
+
+                const satirRenk = (satir.renkKosulu || "HERHANGI").toString().trim().toLowerCase();
+                const testRenkVal = (seciliTestRenk || "").toString().trim().toLowerCase();
+                let renkUyuyor = (!seciliTestRenk || satirRenk === 'herhangi' || satirRenk === testRenkVal);
+
+                const satirTul = (satir.tulKosulu || "HERHANGI").toString().trim().toLowerCase();
+                const testTulVal = (seciliTestTul || "").toString().trim().toLowerCase();
+                let tulUyuyor = (!seciliTestTul || satirTul === 'herhangi' || satirTul === testTulVal);
+
+                let satirAktif = renkUyuyor && tulUyuyor;
+
+                let hesaplananMiktar = 0;
+                let satirMaliyeti = 0;
+
+                if (satirAktif) {
+                    try {
+                        let formulClean = (satir.maliyetFormulu || "0")
+                            .replace(/\[En\]/gi, testEn)
+                            .replace(/\[Boy\]/gi, testBoy)
+                            .replace(/\[Adet\]/gi, testAdet)
+                            .replace(/\[Renk\]/gi, `"${seciliTestRenk}"`)
+                            .replace(/\[Tül\]/gi, `"${seciliTestTul}"`)
+                            .replace(/\[Eklenti\]/gi, `"Yok"`);
+                        
+                        hesaplananMiktar = Function(`'use strict'; return (${formulClean})`)();
+                        if (isNaN(hesaplananMiktar) || hesaplananMiktar < 0) hesaplananMiktar = 0;
+                    } catch (e) {
+                        hesaplananMiktar = 0;
+                    }
+                    satirMaliyeti = birimFiyat * hesaplananMiktar;
+                    toplamUrunMaliyeti += satirMaliyeti;
+                }
+
+                // HER BİR REÇETE MİKRO TEK SATIR (FLEX / GRID)
+                container.innerHTML += `
+                    <div class="glass-card p-2 rounded-lg border ${satirAktif ? 'border-slate-800' : 'border-slate-800/40 opacity-40'} space-y-1 text-xs">
+                        
+                        <div class="flex flex-col lg:flex-row items-center gap-1.5 w-full">
+                            
+                            <!-- DEPO MALZEMESİ -->
+                            <div class="w-full lg:w-48 flex-shrink-0">
+                                <select onchange="window.updateMaliyetSatir(${idx}, 'depoMalzemesi', this.value)" title="Depo Malzemesi" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-emerald-400 font-bold focus:outline-none focus:border-emerald-500 truncate">
+                                    ${depoOptionsHtml}
+                                </select>
+                            </div>
+
+                            <!-- RENK EŞLEŞMESİ -->
+                            <div class="w-full lg:w-28 flex-shrink-0">
+                                <select onchange="window.updateMaliyetSatir(${idx}, 'renkKosulu', this.value)" title="Renk Eşleşmesi" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-indigo-300 font-semibold focus:outline-none focus:border-indigo-500 truncate">
+                                    ${renkOptionsHtml}
+                                </select>
+                            </div>
+
+                            <!-- TÜL EŞLEŞMESİ -->
+                            <div class="w-full lg:w-28 flex-shrink-0">
+                                <select onchange="window.updateMaliyetSatir(${idx}, 'tulKosulu', this.value)" title="Tül Eşleşmesi" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-purple-300 font-semibold focus:outline-none focus:border-purple-500 truncate">
+                                    ${tulOptionsHtml}
+                                </select>
+                            </div>
+
+                            <!-- FORMÜL INPUT -->
+                            <div class="flex-1 w-full relative">
+                                <input type="text" id="formulInput_${idx}" value="${satir.maliyetFormulu || ''}" oninput="window.updateMaliyetSatir(${idx}, 'maliyetFormulu', this.value)" placeholder="Formül Örn: ( [En] + [Boy] ) * 2 / 100 * [Adet]" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- SONUÇ & MİKTAR BİLGİSİ -->
+                            <div class="w-full lg:w-40 flex-shrink-0 flex items-center justify-between lg:justify-end gap-2 text-[10px] bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800/80">
+                                <span class="text-slate-400 font-mono">${hesaplananMiktar.toFixed(2)} Mktr</span>
+                                <strong class="text-white font-mono">${satirMaliyeti.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</strong>
+                            </div>
+
+                            <!-- İŞLEM BUTONLARI -->
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <button type="button" onclick="window.clearFormul(${idx})" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center active-scale" title="Formülü Temizle">
+                                    <i class="fa-solid fa-eraser text-[10px]"></i>
+                                </button>
+                                <button type="button" onclick="window.removeMaliyetSatir(${idx})" class="w-7 h-7 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 flex items-center justify-center active-scale" title="Kalemi Sil">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- ALT MİKRO HIZLI BUTONLAR (TEK SATIR ALTINA MİNİMAL EKLEME) -->
+                        <div class="flex flex-wrap items-center gap-1 pt-0.5 text-[9px]">
+                            <span class="text-slate-500 text-[8px] mr-0.5">Rakamlar:</span>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '0')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">0</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '1')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">1</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '2')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">2</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '3')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">3</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '4')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">4</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '5')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">5</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '6')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">6</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '7')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">7</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '8')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">8</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '9')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[9px] font-mono">9</button>
+
+                            <span class="text-slate-500 text-[8px] ml-1 mr-0.5">Veriler:</span>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '[En]')" class="px-1.5 py-0.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded text-[9px] font-bold">[En]</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '[Boy]')" class="px-1.5 py-0.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded text-[9px] font-bold">[Boy]</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '[Adet]')" class="px-1.5 py-0.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded text-[9px] font-bold">[Adet]</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '[Renk]')" class="px-1.5 py-0.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded text-[9px] font-bold">[Renk]</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '[Tül]')" class="px-1.5 py-0.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded text-[9px] font-bold">[Tül]</button>
+
+                            <span class="text-slate-500 text-[8px] ml-1 mr-0.5">İşlemler:</span>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '+')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[9px] font-bold">+</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '-')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[9px] font-bold">-</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '*')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[9px] font-bold">*</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '/')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[9px] font-bold">/</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, '(')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[9px] font-bold">(</button>
+                            <button type="button" onclick="window.appendFormulToken(${idx}, ')')" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[9px] font-bold">)</button>
+                        </div>
+
+                    </div>
+                `;
+            });
+
+            document.getElementById('txtToplamMaliyet').textContent = toplamUrunMaliyeti.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+        };
+
+        window.updateMaliyetSatir = function(index, field, value) {
+            if (urunMaliyetSatirlari[index]) {
+                urunMaliyetSatirlari[index][field] = value;
+                if (field !== 'maliyetFormulu') {
+                    renderFormulSatirlari();
+                } else {
+                    calculateLivePreviewOnly();
+                }
+            }
+        };
+
+        function calculateLivePreviewOnly() {
+            const seciliTestRenk = document.getElementById('testRenk')?.value || "";
+            const seciliTestTul = document.getElementById('testTul')?.value || "";
+            const testEn = parseFloat(document.getElementById('testEn')?.value) || 0;
+            const testBoy = parseFloat(document.getElementById('testBoy')?.value) || 0;
+            const testAdet = parseFloat(document.getElementById('testAdet')?.value) || 1;
+
+            let toplamUrunMaliyeti = 0;
+
+            urunMaliyetSatirlari.forEach((satir) => {
+                let birimFiyat = 0;
+                if (satir.depoMalzemesi && depoStokFiyatlari[satir.depoMalzemesi]) {
+                    birimFiyat = depoStokFiyatlari[satir.depoMalzemesi].birimFiyat;
+                }
+
+                const satirRenk = (satir.renkKosulu || "HERHANGI").toString().trim().toLowerCase();
+                const testRenkVal = (seciliTestRenk || "").toString().trim().toLowerCase();
+                let renkUyuyor = (!seciliTestRenk || satirRenk === 'herhangi' || satirRenk === testRenkVal);
+
+                const satirTul = (satir.tulKosulu || "HERHANGI").toString().trim().toLowerCase();
+                const testTulVal = (seciliTestTul || "").toString().trim().toLowerCase();
+                let tulUyuyor = (!seciliTestTul || satirTul === 'herhangi' || satirTul === testTulVal);
+                
+                if (renkUyuyor && tulUyuyor) {
+                    try {
+                        let formulClean = (satir.maliyetFormulu || "0")
+                            .replace(/\[En\]/gi, testEn)
+                            .replace(/\[Boy\]/gi, testBoy)
+                            .replace(/\[Adet\]/gi, testAdet)
+                            .replace(/\[Renk\]/gi, `"${seciliTestRenk}"`)
+                            .replace(/\[Tül\]/gi, `"${seciliTestTul}"`)
+                            .replace(/\[Eklenti\]/gi, `"Yok"`);
+                        
+                        let miktar = Function(`'use strict'; return (${formulClean})`)();
+                        if (!isNaN(miktar) && miktar >= 0) {
+                            toplamUrunMaliyeti += (birimFiyat * miktar);
+                        }
+                    } catch (e) {}
+                }
+            });
+
+            const topElem = document.getElementById('txtToplamMaliyet');
+            if (topElem) {
+                topElem.textContent = toplamUrunMaliyeti.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+            }
+        }
+
+        window.removeMaliyetSatir = function(index) {
+            urunMaliyetSatirlari.splice(index, 1);
+            renderFormulSatirlari();
+        };
+
+        document.getElementById('btnFormulleriKaydet').addEventListener('click', async () => {
+            const selectedUrun = document.getElementById('selectFormulUrun').value;
+            if (!selectedUrun) return alert("Lütfen hazır ürün seçiniz!");
+
+            try {
+                const docId = selectedUrun.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+                await setDoc(doc(db, "urun_maliyet_receteleri", docId), {
+                    hazirUrunAdi: selectedUrun,
+                    satirlar: urunMaliyetSatirlari,
+                    guncellemeTarihi: new Date()
+                }, { merge: true });
+
+                alert(`"${selectedUrun}" ürününün tüm reçete grubu başarıyla kaydedildi!`);
+            } catch (err) {
+                alert("Kayıt hatası: " + err.message);
+            }
+        });
+
+        function loadKayitliRecetelerListesi() {
+            try {
+                onSnapshot(collection(db, "urun_maliyet_receteleri"), (snapshot) => {
+                    const container = document.getElementById('kayitliRecetelerListContainer');
+                    if (!container) return;
+                    container.innerHTML = "";
+
+                    if (snapshot.empty) {
+                        container.innerHTML = `<div class="text-slate-500 italic text-xs">Henüz kaydedilmiş reçete grubu bulunmuyor.</div>`;
+                        return;
+                    }
+
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const docId = docSnap.id;
+                        const satirlar = data.satirlar || [];
+                        const urunAdi = data.hazirUrunAdi || docId;
+
+                        let satirlarHtml = "";
+                        satirlar.forEach((s) => {
+                            satirlarHtml += `
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center text-[11px]">
+                                    <div>
+                                        <strong class="text-emerald-400">Malzeme:</strong> ${s.depoMalzemesi || '-'} | 
+                                        <strong class="text-indigo-300">Renk:</strong> ${s.renkKosulu || 'Tümü'} | 
+                                        <strong class="text-purple-300">Tül:</strong> ${s.tulKosulu || 'Tümü'} | 
+                                        <strong class="text-slate-300">Formül:</strong> <span class="font-mono text-amber-300">${s.maliyetFormulu || '-'}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        container.innerHTML += `
+                            <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-layer-group text-emerald-400"></i>
+                                        <h4 class="font-bold text-white text-sm">${urunAdi}</h4>
+                                        <span class="text-[10px] text-slate-400">(Grup Kalem Sayısı: ${satirlar.length})</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="window.editKayitliRecete('${urunAdi}')" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl font-bold transition-all active-scale">
+                                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                        </button>
+                                        <button type="button" onclick="window.deleteKayitliRecete('${docId}', '${urunAdi}')" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-xl font-bold transition-all active-scale">
+                                            <i class="fa-solid fa-trash-can"></i> Sil
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                    ${satirlarHtml || '<span class="text-[10px] text-slate-500 italic">Reçete kalemi yok.</span>'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            } catch (e) {
+                console.error("Kayıtlı reçeteler listelenirken hata:", e);
+            }
+        }
+
+        window.editKayitliRecete = async function(hazirUrunAdi) {
+            const selectUrun = document.getElementById('selectFormulUrun');
+            if (selectUrun) {
+                selectUrun.value = hazirUrunAdi;
+                selectUrun.dispatchEvent(new Event('change'));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        window.deleteKayitliRecete = async function(docId, urunAdi) {
+            if (confirm(`"${urunAdi}" ürününün reçete grubunu silmek istediğinize emin misiniz?`)) {
+                try {
+                    await deleteDoc(doc(db, "urun_maliyet_receteleri", docId));
+                    alert("Reçete grubu başarıyla silindi!");
+                } catch (e) {
+                    alert("Silme hatası: " + e.message);
+                }
+            }
+        };
+
+        function checkAndConvertAllDynamicFields() {
+            document.querySelectorAll('.dynamic-field-wrapper').forEach(container => {
+                const targetTitle = container.getAttribute('data-dynamic-field');
+                const placeholder = container.getAttribute('data-placeholder') || '';
+                const safeId = targetTitle.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+                
+                let veriler = globalAcilirListeler[safeId] || [];
+                const elementId = `dynamic_field_${safeId}`;
+                let currentVal = document.getElementById(elementId)?.value || "";
+
+                if (veriler.length > 0) {
+                    let optionsHtml = `<option value="">-- Seçiniz --</option>`;
+                    veriler.forEach(item => {
+                        let sel = (item === currentVal) ? "selected" : "";
+                        optionsHtml += `<option value="${item}" ${sel}>${item}</option>`;
+                    });
+
+                    container.innerHTML = `
+                        <select id="${elementId}" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                            ${optionsHtml}
+                        </select>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <input type="text" id="${elementId}" value="${currentVal}" placeholder="${placeholder}" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                    `;
+                }
+            });
+        }
+
+        document.getElementById('btnBaslikEkle').addEventListener('click', async () => {
+            const baslik = document.getElementById('inputYeniBaslik').value.trim();
+            if (!baslik) return alert("Başlık adı boş olamaz!");
+            const safeId = baslik.toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/\s+/g, '_');
+
+            try {
+                await setDoc(doc(db, "acilir_liste_ayarlari", safeId), { baslik: baslik, veriler: [] }, { merge: true });
+                document.getElementById('inputYeniBaslik').value = "";
+            } catch (e) { alert("Hata: " + e.message); }
+        });
+
+        window.addListData = async function(docId) {
+            const inputId = `input_data_${docId}`;
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            const val = input.value.trim();
+            if (!val) return;
+
+            let arr = globalAcilirListeler[docId] ? [...globalAcilirListeler[docId]] : [];
+            if (!arr.includes(val)) {
+                arr.push(val);
+                await updateDoc(doc(db, "acilir_liste_ayarlari", docId), { veriler: arr });
+                input.value = "";
+            } else {
+                alert("Bu veri zaten listede var!");
+            }
+        };
+
+        window.removeListData = async function(docId, index) {
+            let arr = globalAcilirListeler[docId] ? [...globalAcilirListeler[docId]] : [];
+            arr.splice(index, 1);
+            await updateDoc(doc(db, "acilir_liste_ayarlari", docId), { veriler: arr });
+        };
+
+        window.deleteListCategory = async function(docId) {
+            if (confirm(`Bu kategoriyi ve tüm verilerini silmek istediğinize emin misiniz?`)) {
+                await deleteDoc(doc(db, "acilir_liste_ayarlari", docId));
+            }
+        };
+
+        window.showTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500/30', 'shadow-lg');
+                btn.classList.add('text-slate-300', 'hover:bg-slate-800/60');
+            });
+
+            const activeContent = document.getElementById(`tab-${tabId}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+
+            const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-300', 'hover:bg-slate-800/60');
+                activeBtn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500/30', 'shadow-lg');
+            }
+        };
+
+        showTab('urun-tanimla');
+        initApp();
+    </script>
+</body>
+</html>

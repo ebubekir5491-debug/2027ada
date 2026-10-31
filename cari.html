@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cari Hesap & Müşteri Yönetimi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+    <!-- ÜST BAR -->
+    <header class="p-4 bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-address-book text-emerald-400"></i>
+                    <span>CARİ HESAP & MÜŞTERİ YÖNETİMİ</span>
+                </h1>
+                <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[180px]">Yükleniyor...</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="siparis.html" class="px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition-all active-scale flex items-center gap-1.5">
+                <i class="fa-solid fa-cart-plus"></i> Siparişlere Git
+            </a>
+            <button type="button" id="btnYeniCariModalAc" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-2">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Yeni Cari Ekle</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK -->
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- ÖZET KARTLARI -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass-card p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] text-slate-400 uppercase font-semibold">Toplam Cari (Müşteri)</p>
+                    <h3 id="txtToplamCari" class="text-xl font-bold text-white mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] text-slate-400 uppercase font-semibold">Toplam Alacak (Borçlar)</p>
+                    <h3 id="txtToplamAlacak" class="text-xl font-bold text-emerald-400 mt-1 font-mono">0,00 ₺</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] text-slate-400 uppercase font-semibold">Toplam Ödeme / Tahsilat</p>
+                    <h3 id="txtToplamTahsilat" class="text-xl font-bold text-sky-400 mt-1 font-mono">0,00 ₺</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARİ LİSTESİ TABLOSU -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-3 border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-list"></i> Kayıtlı Cariler Listesi
+                    </h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Müşteri detayını görmek veya işlem eklemek için cari üzerine tıklayın.</p>
+                </div>
+                <div class="w-full md:w-72">
+                    <input type="text" id="inputArama" placeholder="Cari adı veya telefon ile ara..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/90 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                            <th class="p-3 w-12 text-center">#</th>
+                            <th class="p-3">Cari / Müşteri Adı</th>
+                            <th class="p-3">Telefon</th>
+                            <th class="p-3">Adres / Not</th>
+                            <th class="p-3 text-right">Güncel Bakiye (Borç)</th>
+                            <th class="p-3 text-center w-36">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cariListesiTbody" class="divide-y divide-slate-800/60">
+                        <tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Cariler yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- YENİ CARİ EKLEME MODALI -->
+    <div id="cariModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-md p-5 rounded-2xl border border-indigo-500/30 space-y-4 shadow-2xl animate-scale">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 id="modalBaslik" class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-indigo-400"></i> Yeni Cari Kartı Oluştur
+                </h3>
+                <button type="button" id="btnModalKapat" class="text-slate-400 hover:text-white p-1 text-xs">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Cari / Müşteri Adı Soyadı</label>
+                    <input type="text" id="modalCariAdi" placeholder="Örn: Ahmet Yılmaz / Yılmazlar Ticaret" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Telefon Numarası</label>
+                    <input type="text" id="modalTelefon" placeholder="Örn: 05xx xxx xx xx" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Adres / Açıklama</label>
+                    <input type="text" id="modalAdres" placeholder="Örn: Erenler / Sakarya" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" id="btnModalIptal" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold active-scale">İptal</button>
+                <button type="button" id="btnCariKaydetOnayla" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg active-scale">Cari Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARİ EKSTRE / HAREKET EKLEME MODALI -->
+    <div id="ekstreModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-3xl p-5 rounded-2xl border border-amber-500/30 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 id="ekstreCariAdi" class="text-sm font-bold text-amber-400">Cari Ekstresi</h3>
+                    <p class="text-[10px] text-slate-400">Müşteriye ait borç, alacak ve tahsilat hareketleri</p>
+                </div>
+                <button type="button" onclick="window.ekstreKapat()" class="text-slate-400 hover:text-white p-1 text-xs">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <!-- HAREKET EKLEME FORMU -->
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-2 text-xs items-end">
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">İşlem Türü</label>
+                    <select id="islemTuru" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-xs text-indigo-300 font-bold focus:outline-none">
+                        <option value="Borç">Borçlandır (+)</option>
+                        <option value="Tahsilat">Tahsilat / Ödeme (-)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Tutar (₺)</label>
+                    <input type="number" id="islemTutar" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-emerald-400 font-mono font-bold focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Açıklama</label>
+                    <input type="text" id="islemAciklama" placeholder="Örn: Elden ödeme alındı" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-slate-100 focus:outline-none">
+                </div>
+                <div>
+                    <button type="button" onclick="window.islemEkleKaydet()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold shadow active-scale">İşlem Ekle</button>
+                </div>
+            </div>
+
+            <!-- HAREKETLER TABLOSU -->
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 text-[10px] uppercase">
+                            <th class="p-2.5">Tarih</th>
+                            <th class="p-2.5">Açıklama</th>
+                            <th class="p-2.5 text-center">İşlem Türü</th>
+                            <th class="p-2.5 text-right">Tutar</th>
+                            <th class="p-2.5 text-center w-12">Sil</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ekstreHareketlerTbody" class="divide-y divide-slate-800/60 font-mono">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Hareket bulunmuyor.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
+                <span class="text-slate-400">Güncel Net Bakiye:</span>
+                <span id="ekstreNetBakiye" class="text-base font-extrabold text-emerald-400 font-mono">0,00 ₺</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let carilerListesi = [];
+        let cariHareketlerListesi = [];
+        let editingCariId = null;
+        let aktifSeciliCariAdi = null;
+
+        async function initApp() {
+            try {
+                if (typeof firebaseConfig !== 'undefined') {
+                    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            document.getElementById('userEmailTag').textContent = user.email;
+                        }
+                    });
+
+                    loadCariler();
+                    loadCariHareketler();
+                }
+            } catch (err) {
+                console.error("Init Error:", err);
+            }
+        }
+
+        const cariModal = document.getElementById('cariModal');
+        document.getElementById('btnYeniCariModalAc').addEventListener('click', () => {
+            editingCariId = null;
+            document.getElementById('modalBaslik').innerHTML = `<i class="fa-solid fa-user-plus text-indigo-400"></i> Yeni Cari Kartı Oluştur`;
+            document.getElementById('modalCariAdi').value = "";
+            document.getElementById('modalTelefon').value = "";
+            document.getElementById('modalAdres').value = "";
+            cariModal.classList.remove('hidden');
+        });
+        document.getElementById('btnModalKapat').addEventListener('click', () => cariModal.classList.add('hidden'));
+        document.getElementById('btnModalIptal').addEventListener('click', () => cariModal.classList.add('hidden'));
+
+        // CARİ KAYDET / GÜNCELLE
+        document.getElementById('btnCariKaydetOnayla').addEventListener('click', async () => {
+            const cariAdi = document.getElementById('modalCariAdi').value.trim();
+            const telefon = document.getElementById('modalTelefon').value.trim();
+            const adres = document.getElementById('modalAdres').value.trim();
+
+            if (!cariAdi) { alert("Lütfen cari/müşteri adını giriniz!"); return; }
+
+            try {
+                if (editingCariId) {
+                    await updateDoc(doc(db, "cariler", editingCariId), { cariAdi, telefon, adres, guncellemeTarihi: new Date() });
+                    alert("Cari başarıyla güncellendi!");
+                } else {
+                    await addDoc(collection(db, "cariler"), { cariAdi, telefon, adres, kayitTarihi: new Date() });
+                    alert("Yeni cari başarıyla eklendi!");
+                }
+                cariModal.classList.add('hidden');
+            } catch (e) {
+                alert("Kayıt hatası: " + e.message);
+            }
+        });
+
+        // CARİLERİ ÇEK
+        function loadCariler() {
+            try {
+                onSnapshot(collection(db, "cariler"), (snapshot) => {
+                    carilerListesi = [];
+                    snapshot.forEach(docSnap => {
+                        carilerListesi.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderCariTablosu();
+                });
+            } catch (e) { console.error("Cariler yüklenirken hata:", e); }
+        }
+
+        // CARİ HAREKETLERİNİ ÇEK (Borç / Tahsilat Hesaplama)
+        function loadCariHareketler() {
+            try {
+                onSnapshot(collection(db, "cari_hareketler"), (snapshot) => {
+                    cariHareketlerListesi = [];
+                    snapshot.forEach(docSnap => {
+                        cariHareketlerListesi.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderCariTablosu();
+                    if (aktifSeciliCariAdi) {
+                        window.cariEkstreAc(aktifSeciliCariAdi);
+                    }
+                });
+            } catch (e) { console.error("Cari hareketler yüklenirken hata:", e); }
+        }
+
+        function renderCariTablosu() {
+            const tbody = document.getElementById('cariListesiTbody');
+            const aramaText = (document.getElementById('inputArama').value || "").toLowerCase();
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            let toplamBorcGenel = 0;
+            let toplamTahsilatGenel = 0;
+            let filtrelenmis = carilerListesi.filter(c => (c.cariAdi || "").toLowerCase().includes(aramaText) || (c.telefon || "").includes(aramaText));
+
+            document.getElementById('txtToplamCari').textContent = carilerListesi.length;
+
+            if (filtrelenmis.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Kayıtlı cari bulunamadı.</td></tr>`;
+                document.getElementById('txtToplamAlacak').textContent = "0,00 ₺";
+                document.getElementById('txtToplamTahsilat').textContent = "0,00 ₺";
+                return;
+            }
+
+            filtrelenmis.forEach((cari, idx) => {
+                // Bu cariye ait hareketleri hesapla
+                let cariBakiye = 0;
+                let cariTahsilat = 0;
+                
+                cariHareketlerListesi.filter(h => h.cariAdi === cari.cariAdi).forEach(h => {
+                    const tutar = parseFloat(h.tutar) || 0;
+                    if (h.islemTuru === "Borç") {
+                        cariBakiye += tutar;
+                        toplamBorcGenel += tutar;
+                    } else if (h.islemTuru === "Tahsilat" || h.islemTuru === "Ödeme") {
+                        cariBakiye -= tutar;
+                        toplamTahsilatGenel += tutar;
+                        cariTahsilat += tutar;
+                    }
+                });
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition-colors cursor-pointer" onclick="window.cariEkstreAc('${cari.cariAdi}')">
+                        <td class="p-3 text-center font-mono text-slate-400">${idx + 1}</td>
+                        <td class="p-3 font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-user-tie text-indigo-400"></i> ${cari.cariAdi}
+                        </td>
+                        <td class="p-3 text-slate-300 font-mono">${cari.telefon || '-'}</td>
+                        <td class="p-3 text-slate-400 max-w-[200px] truncate">${cari.adres || '-'}</td>
+                        <td class="p-3 text-right font-mono font-bold text-emerald-400">${cariBakiye.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                        <td class="p-3 text-center" onclick="event.stopPropagation()">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="window.cariEkstreAc('${cari.cariAdi}')" class="px-2 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-bold active-scale" title="Ekstre Göster"><i class="fa-solid fa-file-invoice-dollar"></i> Ekstre</button>
+                                <button type="button" onclick="window.duzenleCari('${cari.id}')" class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-[10px] font-bold active-scale" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                                <button type="button" onclick="window.silCari('${cari.id}')" class="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-bold active-scale" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('txtToplamAlacak').textContent = toplamBorcGenel.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+            document.getElementById('txtToplamTahsilat').textContent = toplamTahsilatGenel.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+        }
+
+        document.getElementById('inputArama').addEventListener('input', renderCariTablosu);
+
+        window.duzenleCari = function(id) {
+            const cari = carilerListesi.find(c => c.id === id);
+            if (!cari) return;
+            editingCariId = id;
+            document.getElementById('modalBaslik').innerHTML = `<i class="fa-solid fa-pen text-amber-400"></i> Cari Kartını Düzenle`;
+            document.getElementById('modalCariAdi').value = cari.cariAdi || '';
+            document.getElementById('modalTelefon').value = cari.telefon || '';
+            document.getElementById('modalAdres').value = cari.adres || '';
+            cariModal.classList.remove('hidden');
+        };
+
+        window.silCari = async function(id) {
+            if (confirm("Bu cari kartını silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "cariler", id));
+                    alert("Cari silindi!");
+                } catch (e) { alert("Silme hatası: " + e.message); }
+            }
+        };
+
+        // CARİ EKSTRE PENCERESİ
+        window.cariEkstreAc = function(cariAdi) {
+            aktifSeciliCariAdi = cariAdi;
+            document.getElementById('ekstreCariAdi').textContent = `${cariAdi} - Hesap Ekstresi`;
+            const tbody = document.getElementById('ekstreHareketlerTbody');
+            tbody.innerHTML = "";
+
+            const hareketler = cariHareketlerListesi.filter(h => h.cariAdi === cariAdi);
+            let netBakiye = 0;
+
+            if (hareketler.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Bu cariye ait henüz işlem hareketi bulunmuyor.</td></tr>`;
+            } else {
+                hareketler.forEach(h => {
+                    const tutar = parseFloat(h.tutar) || 0;
+                    if (h.islemTuru === "Borç") netBakiye += tutar;
+                    else netBakiye -= tutar;
+
+                    let tarihStr = h.tarih && h.tarih.seconds ? new Date(h.tarih.seconds * 1000).toLocaleDateString('tr-TR') : 'Bugün';
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-900/50">
+                            <td class="p-2.5 text-slate-400">${tarihStr}</td>
+                            <td class="p-2.5 text-white">${h.aciklama || '-'}</td>
+                            <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${h.islemTuru === 'Borç' ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}">${h.islemTuru}</span></td>
+                            <td class="p-2.5 text-right font-bold ${h.islemTuru === 'Borç' ? 'text-amber-400' : 'text-sky-400'}">${tutar.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                            <td class="p-2.5 text-center"><button type="button" onclick="window.hareketSil('${h.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash-can"></i></button></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('ekstreNetBakiye').textContent = netBakiye.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+            document.getElementById('ekstreModal').classList.remove('hidden');
+        };
+
+        window.ekstreKapat = function() {
+            aktifSeciliCariAdi = null;
+            document.getElementById('ekstreModal').classList.add('hidden');
+        };
+
+        // EKSTREYE MANUEL İŞLEM (BORÇ / TAHSİLAT) EKLEME
+        window.islemEkleKaydet = async function() {
+            if (!aktifSeciliCariAdi) return;
+            const islemTuru = document.getElementById('islemTuru').value;
+            const tutar = parseFloat(document.getElementById('islemTutar').value) || 0;
+            const aciklama = document.getElementById('islemAciklama').value.trim() || (islemTuru === 'Borç' ? 'Manuel Borç Ekleme' : 'Nakit Tahsilat');
+
+            if (tutar <= 0) { alert("Lütfen geçerli bir tutar giriniz!"); return; }
+
+            try {
+                await addDoc(collection(db, "cari_hareketler"), {
+                    cariAdi: aktifSeciliCariAdi,
+                    islemTuru,
+                    tutar,
+                    aciklama,
+                    tarih: new Date()
+                });
+                document.getElementById('islemTutar').value = "";
+                document.getElementById('islemAciklama').value = "";
+                alert("İşlem başarıyla eklendi!");
+            } catch (e) {
+                alert("İşlem ekleme hatası: " + e.message);
+            }
+        };
+
+        window.hareketSil = async function(id) {
+            if (confirm("Bu hareketi silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "cari_hareketler", id));
+                } catch (e) { alert("Silme hatası: " + e.message); }
+            }
+        };
+
+        initApp();
+    </script>
+</body>
+</html>

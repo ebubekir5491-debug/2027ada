@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sipariş Oluştur - Mobil & Masaüstü İşletme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+    <!-- ÜST BAR -->
+    <header class="p-4 bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-cart-plus text-emerald-400"></i>
+                    <span id="pageTitleText">SİPARİŞ OLUŞTUR & İMALATA AKTAR</span>
+                </h1>
+                <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[150px]">Yükleniyor...</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="imalat.html" class="px-3.5 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition-all active-scale flex items-center gap-1.5">
+                <i class="fa-solid fa-industry"></i> İmalat Sayfasına Git
+            </a>
+            <button type="button" id="btnSiparisiKaydet" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span id="btnSaveText">Siparişi Oluştur</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK -->
+    <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full space-y-6">
+
+        <!-- MÜŞTERİ BİLGİLERİ KARTI -->
+        <div class="glass-card p-4 md:p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-user"></i> Müşteri / Cari Bilgileri
+                </h3>
+                <div id="editingBadge" class="hidden items-center gap-2">
+                    <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-[10px] font-bold">Düzenleme Modu</span>
+                    <button type="button" onclick="window.cancelEdit()" class="text-[10px] text-rose-400 hover:underline">İptal Et</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Cari / Müşteri Seçimi (cari.html)</label>
+                    <select id="selectCariMusteri" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
+                        <option value="">-- Cari Müşteri Seçiniz --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Sipariş Tutarı (₺)</label>
+                    <input type="number" id="inputSiparisFiyati" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Sipariş Notu</label>
+                    <input type="text" id="inputSiparisNotu" placeholder="Örn: Montaj yapılacak" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- SİPARİŞ KALEMLERİ -->
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-table"></i> Sipariş Kalemleri Listesi
+                </h3>
+                <button type="button" id="btnKalemEkleModalAc" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Yeni Ürün Kalem Ekle</span>
+                </button>
+            </div>
+
+            <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/90 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="p-3 text-center w-12">#</th>
+                                <th class="p-3">Hazır Ürün</th>
+                                <th class="p-3 text-center w-20">En (cm)</th>
+                                <th class="p-3 text-center w-20">Boy (cm)</th>
+                                <th class="p-3 text-center w-16">Adet</th>
+                                <th class="p-3">Renk</th>
+                                <th class="p-3">Tül</th>
+                                <th class="p-3">Eklenti</th>
+                                <th class="p-3">Not</th>
+                                <th class="p-3 text-right">Reçete Maliyet</th>
+                                <th class="p-3 text-center w-16">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="siparisTabloBody" class="divide-y divide-slate-800/60"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- KAYITLI SİPARİŞLER VE DURUM FİLTRESİ -->
+        <div class="space-y-4 pt-6 border-t border-slate-800">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> Kayıtlı Siparişler & Durum Yönetimi
+                </h3>
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <span class="text-[10px] text-slate-400">Durum Filtrele:</span>
+                    <select id="selectDurumFiltre" onchange="window.renderKayitliSiparislerTablosu()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-bold focus:outline-none">
+                        <option value="Tümü">Tüm Durumlar</option>
+                        <option value="Yeni Sipariş" selected>Yeni Sipariş</option>
+                        <option value="Beklemede">Beklemede</option>
+                        <option value="Tamamlandı">Tamamlandı</option>
+                        <option value="İptal">İptal</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/90 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="p-3">Sipariş Kodu</th>
+                                <th class="p-3">Müşteri / Cari</th>
+                                <th class="p-3 text-right">Sipariş Fiyatı</th>
+                                <th class="p-3 text-center">Kalem</th>
+                                <th class="p-3 text-center">Durum</th>
+                                <th class="p-3 text-center">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tamamlananSiparislerTbody" class="divide-y divide-slate-800/60">
+                            <tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Kayıtlı siparişler yükleniyor...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- YENİ ÜRÜN KALEM EKLEME MODALI -->
+    <div id="kalemModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-lg p-5 rounded-2xl border border-indigo-500/30 space-y-4 shadow-2xl animate-scale">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-box-open text-indigo-400"></i> Yeni Sipariş Kalemi Ekle
+                </h3>
+                <button type="button" id="btnModalKapat" class="text-slate-400 hover:text-white p-1 text-xs">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Hazır Ürün Seçin</label>
+                    <select id="modalHazirUrun" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
+                        <option value="">-- Hazır Ürün Seçiniz --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">En (cm)</label>
+                    <input type="number" id="modalEn" value="100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Boy (cm)</label>
+                    <input type="number" id="modalBoy" value="200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Adet</label>
+                    <input type="number" id="modalAdet" value="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-indigo-400 font-semibold mb-1">Renk</label>
+                    <select id="modalRenk" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-indigo-300 focus:outline-none focus:border-indigo-500">
+                        <option value="">-- Renk Seçiniz --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-purple-400 font-semibold mb-1">Tül</label>
+                    <select id="modalTul" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-purple-300 focus:outline-none focus:border-purple-500">
+                        <option value="">-- Tül Seçiniz --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-amber-400 font-semibold mb-1">Eklenti</label>
+                    <select id="modalEklenti" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 focus:outline-none focus:border-amber-500">
+                        <option value="">-- Eklenti Seçiniz --</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Özel Not</label>
+                    <input type="text" id="modalNot" placeholder="Örn: Ölçü yerine uyacak şekilde kesilecek" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" id="btnModalIptal" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold active-scale">İptal</button>
+                <button type="button" id="btnModalKalemEkleOnayla" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg active-scale">Kalemi Listeye Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALT ÖZET BAR -->
+    <footer class="p-4 bg-slate-900/95 border-t border-slate-800 sticky bottom-0 z-40 glass-card">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div>
+                <span class="text-[11px] text-slate-400 block">Sipariş Toplam Kalem Sayısı: <strong id="txtToplamKalemSayisi" class="text-white">0</strong></span>
+                <span class="text-[10px] text-slate-500">Reçete bazlı toplam maliyet özetidir.</span>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] text-slate-400 block">TOPLAM REÇETE MALİYETİ</span>
+                <h2 id="txtGenelToplamMaliyet" class="text-xl md:text-2xl font-extrabold text-emerald-400 font-mono">0,00 ₺</h2>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let globalAcilirListeler = {};
+        let depoStokFiyatlari = {};
+        let depoStokDokumanlari = {};
+        let urunReceteleri = {};
+        let siparisKalemleri = [];
+        let editingSiparisId = null;
+        let mevcutSiparisSayisi = 0;
+        let tumKayitliSiparislerCache = {};
+        let currentUserEmail = "";
+
+        async function initApp() {
+            try {
+                if (typeof firebaseConfig !== 'undefined') {
+                    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUserEmail = (user.email || "").toLowerCase();
+                            document.getElementById('userEmailTag').textContent = user.email;
+                            window.renderKayitliSiparislerTablosu();
+                        }
+                    });
+
+                    await loadAcilirListeler();
+                    await loadCariListesi();
+                    await loadDepoStoklari();
+                    await loadUrunReceteleri();
+                    loadKayitliSiparisler();
+                }
+            } catch (err) { console.error("Init Error:", err); }
+        }
+
+        function isTamYetkili() {
+            return currentUserEmail.includes('admin') || currentUserEmail.includes('yonetici') || currentUserEmail.includes('boss') || currentUserEmail.includes('manager');
+        }
+
+        async function loadAcilirListeler() {
+            try {
+                onSnapshot(collection(db, "acilir_liste_ayarlari"), (snapshot) => {
+                    globalAcilirListeler = {};
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        globalAcilirListeler[docSnap.id] = data.veriler || data.liste || [];
+                    });
+                    populeModalSelects();
+                    calculateAllCosts();
+                });
+            } catch (e) { console.error("Açılır liste hatası:", e); }
+        }
+
+        async function loadCariListesi() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "cariler"));
+                const selectCari = document.getElementById('selectCariMusteri');
+                let opt = `<option value="">-- Cari / Müşteri Seçiniz --</option>`;
+                
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach(docSnap => {
+                        const cari = docSnap.data();
+                        const cariAdi = cari.cariAdi || cari.musteriAdi || docSnap.id;
+                        opt += `<option value="${cariAdi}">${cariAdi} ${cari.telefon ? '(' + cari.telefon + ')' : ''}</option>`;
+                    });
+                }
+                selectCari.innerHTML = opt;
+            } catch (e) { console.error("Cari liste yükleme hatası:", e); }
+        }
+
+        function populeModalSelects() {
+            const hazirUrunler = globalAcilirListeler['hazir_urunler'] || globalAcilirListeler['hazirUrunler'] || [];
+            const renkler = globalAcilirListeler['renk'] || [];
+            const tuller = globalAcilirListeler['tul'] || globalAcilirListeler['tul_cesitleri'] || [];
+            const eklentiler = globalAcilirListeler['eklenti'] || globalAcilirListeler['eklentiler'] || [];
+
+            let uOpt = `<option value="">-- Hazır Ürün Seçiniz --</option>`;
+            hazirUrunler.forEach(u => uOpt += `<option value="${u}">${u}</option>`);
+            document.getElementById('modalHazirUrun').innerHTML = uOpt;
+
+            let rOpt = `<option value="">-- Renk Seçiniz --</option>`;
+            renkler.forEach(r => rOpt += `<option value="${r}">${r}</option>`);
+            document.getElementById('modalRenk').innerHTML = rOpt;
+
+            let tOpt = `<option value="">-- Tül Seçiniz --</option>`;
+            tuller.forEach(t => tOpt += `<option value="${t}">${t}</option>`);
+            document.getElementById('modalTul').innerHTML = tOpt;
+
+            let eOpt = `<option value="">-- Eklenti Seçiniz --</option>`;
+            eklentiler.forEach(e => eOpt += `<option value="${e}">${e}</option>`);
+            document.getElementById('modalEklenti').innerHTML = eOpt;
+        }
+
+        async function loadDepoStoklari() {
+            try {
+                onSnapshot(collection(db, "depo_stoklari"), (snapshot) => {
+                    depoStokFiyatlari = {};
+                    depoStokDokumanlari = {};
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const kod = (data.urunKodu || data.malzemeTanimi || "BILINMEYEN").trim();
+                        const renk = (data.renk || "").trim();
+                        const malGrubu = (data.malGrubu || "").trim();
+                        const malzemeTanimi = (data.malzemeTanimi || "").trim();
+                        
+                        // Ayarlar.html ile birebir aynı benzersiz depo anahtarı
+                        const benzersizAnahtar = `${kod}_${malzemeTanimi}_${renk}_${malGrubu}`;
+
+                        depoStokFiyatlari[benzersizAnahtar] = parseFloat(data.birimFiyat) || 0;
+                        depoStokFiyatlari[kod.toLowerCase()] = parseFloat(data.birimFiyat) || 0; // Alternatif eşleşme için
+
+                        depoStokDokumanlari[benzersizAnahtar] = { id: docSnap.id, mevcutMiktar: parseFloat(data.miktar || data.stokMiktari || 0) };
+                    });
+                    calculateAllCosts();
+                });
+            } catch (e) { console.error("Depo stok hatası:", e); }
+        }
+
+        async function loadUrunReceteleri() {
+            try {
+                onSnapshot(collection(db, "urun_maliyet_receteleri"), (snapshot) => {
+                    urunReceteleri = {};
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data.hazirUrunAdi) {
+                            urunReceteleri[data.hazirUrunAdi.trim().toLowerCase()] = data.satirlar || [];
+                        }
+                    });
+                    calculateAllCosts();
+                });
+            } catch (e) { console.error("Reçete yükleme hatası:", e); }
+        }
+
+        const kalemModal = document.getElementById('kalemModal');
+        document.getElementById('btnKalemEkleModalAc').addEventListener('click', () => { kalemModal.classList.remove('hidden'); });
+        document.getElementById('btnModalKapat').addEventListener('click', () => { kalemModal.classList.add('hidden'); });
+        document.getElementById('btnModalIptal').addEventListener('click', () => { kalemModal.classList.add('hidden'); });
+
+        document.getElementById('btnModalKalemEkleOnayla').addEventListener('click', () => {
+            const hazirUrun = document.getElementById('modalHazirUrun').value;
+            const en = parseFloat(document.getElementById('modalEn').value) || 0;
+            const boy = parseFloat(document.getElementById('modalBoy').value) || 0;
+            const adet = parseFloat(document.getElementById('modalAdet').value) || 1;
+            const renk = document.getElementById('modalRenk').value;
+            const tul = document.getElementById('modalTul').value;
+            const eklenti = document.getElementById('modalEklenti').value;
+            const not = document.getElementById('modalNot').value.trim();
+
+            if (!hazirUrun) { alert("Lütfen bir hazır ürün seçiniz!"); return; }
+
+            siparisKalemleri.push({ hazirUrun, en, boy, adet, renk, tul, eklenti, not, kalemMaliyeti: 0 });
+            kalemModal.classList.add('hidden');
+            document.getElementById('modalNot').value = "";
+            renderSiparisTablosu();
+        });
+
+        function renderSiparisTablosu() {
+            const tbody = document.getElementById('siparisTabloBody');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (siparisKalemleri.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-500 italic">Henüz sipariş kalemi eklenmemiş.</td></tr>`;
+                calculateAllCosts();
+                return;
+            }
+
+            siparisKalemleri.forEach((kalem, idx) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition-colors">
+                        <td class="p-3 text-center font-mono text-slate-400">${idx + 1}</td>
+                        <td class="p-3 font-bold text-emerald-400">${kalem.hazirUrun}</td>
+                        <td class="p-3 text-center"><input type="number" value="${kalem.en}" oninput="window.updateTabloKalem(${idx}, 'en', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-center text-slate-100 font-bold"></td>
+                        <td class="p-3 text-center"><input type="number" value="${kalem.boy}" oninput="window.updateTabloKalem(${idx}, 'boy', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-center text-slate-100 font-bold"></td>
+                        <td class="p-3 text-center"><input type="number" value="${kalem.adet}" oninput="window.updateTabloKalem(${idx}, 'adet', this.value)" class="w-14 bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-center text-slate-100 font-bold"></td>
+                        <td class="p-3 text-indigo-300">${kalem.renk || '-'}</td>
+                        <td class="p-3 text-purple-300">${kalem.tul || '-'}</td>
+                        <td class="p-3 text-amber-300">${kalem.eklenti || '-'}</td>
+                        <td class="p-3 text-slate-300 max-w-[150px] truncate" title="${kalem.not || ''}">${kalem.not || '-'}</td>
+                        <td class="p-3 text-right font-mono font-bold text-emerald-400" id="txtKalemMaliyet_${idx}">0,00 ₺</td>
+                        <td class="p-3 text-center">
+                            <button type="button" onclick="window.removeKalem(${idx})" class="w-7 h-7 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 flex items-center justify-center transition-all active-scale mx-auto" title="Sil">
+                                <i class="fa-solid fa-trash-can text-[10px]"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            calculateAllCosts();
+        }
+
+        window.updateTabloKalem = function(index, field, val) {
+            if (siparisKalemleri[index]) {
+                siparisKalemleri[index][field] = (field === 'en' || field === 'boy' || field === 'adet') ? parseFloat(val) || 0 : val;
+                calculateAllCosts();
+            }
+        };
+
+        window.removeKalem = function(index) {
+            siparisKalemleri.splice(index, 1);
+            renderSiparisTablosu();
+        };
+
+        function calculateAllCosts() {
+            let genelToplamMaliyet = 0;
+            siparisKalemleri.forEach((kalem, idx) => {
+                let kalemToplam = 0;
+                const receteSatirlari = urunReceteleri[kalem.hazirUrun.trim().toLowerCase()] || [];
+
+                receteSatirlari.forEach(satir => {
+                    const depoMalzemeKey = (satir.depoMalzemesi || "").trim();
+                    let birimFiyat = depoStokFiyatlari[depoMalzemeKey] || depoStokFiyatlari[depoMalzemeKey.toLowerCase()] || 0;
+
+                    const satirRenk = (satir.renkKosulu || "herhangi").toString().trim().toLowerCase();
+                    const seciliRenk = (kalem.renk || "").toString().trim().toLowerCase();
+                    let renkUyuyor = (satirRenk === 'herhangi' || satirRenk === seciliRenk);
+
+                    const satirTul = (satir.tulKosulu || "herhangi").toString().trim().toLowerCase();
+                    const seciliTul = (kalem.tul || "").toString().trim().toLowerCase();
+                    let tulUyuyor = (satirTul === 'herhangi' || satirTul === seciliTul);
+
+                    if (renkUyuyor && tulUyuyor) {
+                        try {
+                            let formulClean = (satir.maliyetFormulu || "0")
+                                .replace(/\[En\]/gi, kalem.en || 0)
+                                .replace(/\[Boy\]/gi, kalem.boy || 0)
+                                .replace(/\[Adet\]/gi, kalem.adet || 1)
+                                .replace(/\[Renk\]/gi, `"${kalem.renk || ''}"`)
+                                .replace(/\[Tül\]/gi, `"${kalem.tul || ''}"`)
+                                .replace(/\[Eklenti\]/gi, `"${kalem.eklenti || ''}"`);
+
+                            let miktar = Function(`'use strict'; return (${formulClean})`)();
+                            if (isNaN(miktar) || miktar < 0) miktar = 0;
+                            kalemToplam += (birimFiyat * miktar);
+                        } catch (e) { console.error("Formül hatası:", e); }
+                    }
+                });
+
+                kalem.kalemMaliyeti = kalemToplam;
+                genelToplamMaliyet += kalemToplam;
+                const elem = document.getElementById(`txtKalemMaliyet_${idx}`);
+                if (elem) {
+                    elem.textContent = kalemToplam.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+                }
+            });
+
+            document.getElementById('txtToplamKalemSayisi').textContent = siparisKalemleri.length;
+            document.getElementById('txtGenelToplamMaliyet').textContent = genelToplamMaliyet.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'});
+        }
+
+        document.getElementById('btnSiparisiKaydet').addEventListener('click', async () => {
+            const musteriAdi = document.getElementById('selectCariMusteri').value;
+            const siparisFiyati = parseFloat(document.getElementById('inputSiparisFiyati').value) || 0;
+            const not = document.getElementById('inputSiparisNotu').value.trim();
+
+            if (!musteriAdi) { alert("Lütfen bir cari / müşteri seçiniz!"); return; }
+            if (siparisFiyati <= 0) { alert("Lütfen geçerli bir sipariş satış fiyatı (₺) giriniz!"); return; }
+            if (siparisKalemleri.length === 0) { alert("Lütfen en az bir sipariş kalemi ekleyiniz!"); return; }
+
+            try {
+                let toplamMaliyet = siparisKalemleri.reduce((acc, k) => acc + k.kalemMaliyeti, 0);
+
+                if (editingSiparisId) {
+                    await updateDoc(doc(db, "siparisler", editingSiparisId), {
+                        musteriAdi, siparisFiyati, siparisNotu: not, kalemler: siparisKalemleri, toplamMaliyet, guncellemeTarihi: new Date()
+                    });
+                    alert("Sipariş başarıyla güncellendi!");
+                    window.cancelEdit();
+                } else {
+                    const yeniKodNumarasi = mevcutSiparisSayisi + 1;
+                    const siparisKodu = "S-" + String(yeniKodNumarasi).padStart(4, '0');
+
+                    await addDoc(collection(db, "siparisler"), {
+                        siparisKodu, musteriAdi, telefon: "", siparisFiyati, siparisNotu: not, 
+                        kalemler: siparisKalemleri, toplamMaliyet, durum: "Yeni Sipariş", tarih: new Date()
+                    });
+
+                    alert(`Sipariş başarıyla oluşturuldu!\nSipariş Kodunuz: ${siparisKodu}`);
+                    
+                    siparisKalemleri = [];
+                    document.getElementById('selectCariMusteri').value = "";
+                    document.getElementById('inputSiparisFiyati').value = "";
+                    document.getElementById('inputSiparisNotu').value = "";
+                    renderSiparisTablosu();
+                }
+            } catch (err) { alert("İşlem hatası: " + err.message); }
+        });
+
+        function loadKayitliSiparisler() {
+            try {
+                onSnapshot(collection(db, "siparisler"), (snapshot) => {
+                    tumKayitliSiparislerCache = {};
+                    mevcutSiparisSayisi = snapshot.size;
+
+                    snapshot.forEach(docSnap => {
+                        tumKayitliSiparislerCache[docSnap.id] = docSnap.data();
+                    });
+                    window.renderKayitliSiparislerTablosu();
+                });
+            } catch (e) { console.error("Kayıtlı siparişler yüklenirken hata:", e); }
+        }
+
+        window.renderKayitliSiparislerTablosu = function() {
+            const tbody = document.getElementById('tamamlananSiparislerTbody');
+            const secilenFiltre = document.getElementById('selectDurumFiltre').value;
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const entries = Object.entries(tumKayitliSiparislerCache);
+            if (entries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Henüz kaydedilmiş sipariş bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            let gosterilenSayac = 0;
+            const tamYetkili = isTamYetkili();
+
+            entries.forEach(([docId, data]) => {
+                const durum = data.durum || "Yeni Sipariş";
+                if (secilenFiltre !== "Tümü" && durum !== secilenFiltre) return;
+                gosterilenSayac++;
+
+                const kod = data.siparisKodu || "S-0001";
+                const isTamamlandi = (durum === "Tamamlandı");
+                const butonlarDevreDisi = (isTamamlandi && !tamYetkili);
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition-colors">
+                        <td class="p-3 font-mono font-bold text-amber-400">${kod}</td>
+                        <td class="p-3 font-semibold text-white">${data.musteriAdi || '-'}</td>
+                        <td class="p-3 text-right font-mono font-bold text-indigo-400">${(data.siparisFiyati || 0).toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                        <td class="p-3 text-center font-mono">${(data.kalemler || []).length} Kalem</td>
+                        <td class="p-3 text-center">
+                            <select onchange="window.siparisDurumGuncelle('${docId}', this.value)" ${isTamamlandi ? 'disabled class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-emerald-400 opacity-60 cursor-not-allowed"' : 'class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-amber-300 focus:outline-none"'}>
+                                <option value="Yeni Sipariş" ${durum === 'Yeni Sipariş' ? 'selected' : ''}>Yeni Sipariş</option>
+                                <option value="Beklemede" ${durum === 'Beklemede' ? 'selected' : ''}>Beklemede</option>
+                                <option value="Tamamlandı" ${durum === 'Tamamlandı' ? 'selected' : ''}>Tamamlandı</option>
+                                <option value="İptal" ${durum === 'İptal' ? 'selected' : ''}>İptal</option>
+                            </select>
+                        </td>
+                        <td class="p-3 text-center flex items-center justify-center gap-1.5">
+                            <button type="button" onclick="window.duzenleSiparis('${docId}')" ${butonlarDevreDisi ? 'disabled class="px-2 py-1 bg-slate-800 text-slate-500 rounded-lg text-[10px] cursor-not-allowed"' : 'class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-[10px] font-bold active-scale"'} title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" onclick="window.silSiparis('${docId}', '${kod}')" ${butonlarDevreDisi ? 'disabled class="px-2 py-1 bg-slate-800 text-slate-500 rounded-lg text-[10px] cursor-not-allowed"' : 'class="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-bold active-scale"'} title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+                            <button type="button" onclick='window.imalataGonderVeGit(${JSON.stringify(data)})' class="px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-bold active-scale" title="İmalata Aktar"><i class="fa-solid fa-industry"></i> İmalat</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (gosterilenSayac === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Bu filtreye uygun sipariş bulunmuyor.</td></tr>`;
+            }
+        };
+
+        window.siparisDurumGuncelle = async function(docId, yeniDurum) {
+            try {
+                const siparis = tumKayitliSiparislerCache[docId];
+                if (!siparis) return;
+                const eskiDurum = siparis.durum || "Yeni Sipariş";
+
+                if (eskiDurum === "Tamamlandı") {
+                    alert("Tamamlanmış bir siparişin durumu artık değiştirilemez!");
+                    window.renderKayitliSiparislerTablosu();
+                    return;
+                }
+
+                if (yeniDurum === "Tamamlandı") {
+                    await addDoc(collection(db, "cari_hareketler"), {
+                        cariAdi: siparis.musteriAdi,
+                        islemTuru: "Borç",
+                        tutar: parseFloat(siparis.siparisFiyati) || 0,
+                        aciklama: `Sipariş Tamamlandı (${siparis.siparisKodu})`,
+                        tarih: new Date()
+                    });
+
+                    for (const kalem of (siparis.kalemler || [])) {
+                        const recete = urunReceteleri[kalem.hazirUrun.trim().toLowerCase()] || [];
+                        for (const satir of recete) {
+                            const satirRenk = (satir.renkKosulu || "herhangi").toString().trim().toLowerCase();
+                            const seciliRenk = (kalem.renk || "").toString().trim().toLowerCase();
+                            const satirTul = (satir.tulKosulu || "herhangi").toString().trim().toLowerCase();
+                            const seciliTul = (kalem.tul || "").toString().trim().toLowerCase();
+
+                            if ((satirRenk === 'herhangi' || satirRenk === seciliRenk) && (satirTul === 'herhangi' || satirTul === seciliTul)) {
+                                try {
+                                    let formulClean = (satir.maliyetFormulu || "0")
+                                        .replace(/\[En\]/gi, kalem.en || 0)
+                                        .replace(/\[Boy\]/gi, kalem.boy || 0)
+                                        .replace(/\[Adet\]/gi, kalem.adet || 1);
+                                    let harcananMiktar = Function(`'use strict'; return (${formulClean})`)();
+                                    if (isNaN(harcananMiktar)) harcananMiktar = 0;
+
+                                    const depoMalzemeKey = (satir.depoMalzemesi || "").trim();
+                                    const depoItem = depoStokDokumanlari[depoMalzemeKey];
+                                    if (depoItem) {
+                                        let yeniStok = depoItem.mevcutMiktar - harcananMiktar;
+                                        await updateDoc(doc(db, "depo_stoklari", depoItem.id), {
+                                            miktar: yeniStok,
+                                            stokMiktari: yeniStok
+                                        });
+                                        depoItem.mevcutMiktar = yeniStok;
+                                    }
+                                } catch (e) { console.error("Stok düşme hatası:", e); }
+                            }
+                        }
+                    }
+                    alert(`Sipariş "Tamamlandı" olarak kilitlendi!\n- Cari hesaba borç yansıtıldı.\n- Stoklar depodan düşüldü.`);
+                } else {
+                    alert(`Sipariş durumu "${yeniDurum}" olarak güncellendi.`);
+                }
+
+                await updateDoc(doc(db, "siparisler", docId), {
+                    durum: yeniDurum,
+                    guncellemeTarihi: new Date()
+                });
+            } catch (e) {
+                alert("Durum güncellenirken hata oluştu: " + e.message);
+            }
+        };
+
+        window.duzenleSiparis = function(docId) {
+            const siparis = tumKayitliSiparislerCache[docId];
+            if (!siparis) return;
+            if (siparis.durum === "Tamamlandı" && !isTamYetkili()) {
+                alert("Tamamlanmış siparişleri düzenleme yetkiniz yok!");
+                return;
+            }
+            editingSiparisId = docId;
+            document.getElementById('selectCariMusteri').value = siparis.musteriAdi || '';
+            document.getElementById('inputSiparisFiyati').value = siparis.siparisFiyati || '';
+            document.getElementById('inputSiparisNotu').value = siparis.siparisNotu || '';
+            siparisKalemleri = siparis.kalemler ? JSON.parse(JSON.stringify(siparis.kalemler)) : [];
+
+            document.getElementById('pageTitleText').textContent = "SİPARİŞİ DÜZENLE";
+            document.getElementById('btnSaveText').textContent = "Güncellemeyi Kaydet";
+            document.getElementById('editingBadge').classList.remove('hidden');
+            document.getElementById('editingBadge').classList.add('flex');
+            renderSiparisTablosu();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.cancelEdit = function() {
+            editingSiparisId = null;
+            document.getElementById('selectCariMusteri').value = '';
+            document.getElementById('inputSiparisFiyati').value = '';
+            document.getElementById('inputSiparisNotu').value = '';
+            siparisKalemleri = [];
+            document.getElementById('pageTitleText').textContent = "SİPARİŞ OLUŞTUR & İMALATA AKTAR";
+            document.getElementById('btnSaveText').textContent = "Siparişi Oluştur";
+            document.getElementById('editingBadge').classList.add('hidden');
+            document.getElementById('editingBadge').classList.remove('flex');
+            renderSiparisTablosu();
+        };
+
+        window.silSiparis = async function(docId, kod) {
+            const siparis = tumKayitliSiparislerCache[docId];
+            if (siparis && siparis.durum === "Tamamlandı" && !isTamYetkili()) {
+                alert("Tamamlanmış siparişleri silme yetkiniz yok!");
+                return;
+            }
+            if (confirm(`"${kod}" kodlu siparişi kalıcı olarak silmek istediğinize emin misiniz?`)) {
+                try {
+                    await deleteDoc(doc(db, "siparisler", docId));
+                    alert("Sipariş silindi!");
+                    if (editingSiparisId === docId) window.cancelEdit();
+                } catch (e) { alert("Silme hatası: " + e.message); }
+            }
+        };
+
+        window.imalataGonderVeGit = function(siparisVerisi) {
+            try {
+                let mevcutListe = [];
+                const stored = sessionStorage.getItem('gecici_imalat_siparisleri');
+                if (stored) mevcutListe = JSON.parse(stored);
+
+                mevcutListe.push({
+                    siparisNo: siparisVerisi.siparisKodu || "S-0001",
+                    musteriAdi: siparisVerisi.musteriAdi,
+                    telefon: siparisVerisi.telefon || "",
+                    kalemler: siparisVerisi.kalemler
+                });
+
+                sessionStorage.setItem('gecici_imalat_siparisleri', JSON.stringify(mevcutListe));
+                window.location.href = "imalat.html";
+            } catch (e) { alert("İmalata aktarma hatası: " + e.message); }
+        };
+
+        initApp();
+    </script>
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>İmalat & Kesim Listesi - İşletme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+
+        @media print {
+            @page { size: A4 landscape; margin: 8mm; }
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-container { width: 100% !important; background: white !important; color: black !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            table { font-size: 9px !important; border-collapse: collapse !important; width: 100% !important; }
+            th, td { border: 1px solid #cbd5e1 !important; padding: 5px 3px !important; color: black !important; text-align: center !important; }
+            th { background-color: #f1f5f9 !important; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col overflow-x-hidden">
+
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300 no-print">
+        <div class="w-16 h-16 rounded-2xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- ÜST NAVİGASYON -->
+    <header class="p-4 bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 flex items-center justify-between no-print">
+        <div class="flex items-center space-x-3">
+            <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-industry text-amber-400"></i>
+                    <span>İMALAT & KESİM LİSTESİ</span>
+                </h1>
+                <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[200px]">Yükleniyor...</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="window.geciciListeyiTemizle()" class="px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition-all active-scale flex items-center gap-1.5" title="Listeyi Temizle">
+                <i class="fa-solid fa-trash-can"></i> Listeyi Sıfırla
+            </button>
+            <a href="siparis.html" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all active-scale">Siparişlere Dön</a>
+            <a href="urunimalatayarları.html" class="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition-all active-scale">İmalat Ayarları</a>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK -->
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- MÜŞTERİ BİLGİLERİ ÖZET KARTI -->
+        <div id="musteriBilgiKarti" class="glass-card p-4 rounded-2xl border border-amber-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div>
+                    <h3 id="txtMusteriAdi" class="text-sm font-bold text-white">Müşteri Bekleniyor...</h3>
+                    <p id="txtMusteriDetay" class="text-xs text-slate-400">Sipariş sayfasından "İmalata Aktar" butonuna basınız.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <span id="txtSiparisKoduBadge" class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-amber-400 font-mono text-xs rounded-xl font-bold">S-0000</span>
+                <button type="button" onclick="window.printKesimListesi()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> Yazdır (A4 Yatay)
+                </button>
+            </div>
+        </div>
+
+        <!-- 1. TABLO: SİPARİŞ ÖLÇÜLERİ -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 print-container">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-indigo-400 flex items-center gap-2">
+                        <i class="fa-solid fa-cart-shopping"></i> 1. Sipariş Ölçüleri
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Siparişe ait orijinal ürün detayları ve ölçüleri.</p>
+                </div>
+                <span id="txtAktifTarih" class="text-xs text-slate-400 font-mono no-print"></span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-center text-xs font-mono">
+                    <thead class="bg-slate-900 text-slate-300 border-b border-slate-800 text-[10px] uppercase">
+                        <tr>
+                            <th class="p-2.5 border border-slate-800 text-center">No</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Ürün Tanımı</th>
+                            <th class="p-2.5 border border-slate-800 text-center">En</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Boy</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Renk</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Tül</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Eklenti</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Adet</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Not</th>
+                        </tr>
+                    </thead>
+                    <tbody id="siparisOlcüleriTbody" class="divide-y divide-slate-800">
+                        <tr><td colspan="9" class="text-center py-6 text-slate-500 italic">Sipariş bilgileri yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. TABLO: KESİM ÖLÇÜLERİ -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 print-container">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> 2. Kesim Ölçüleri (İmalat Matrisi)
+                    </h3>
+                    <p class="text-[11px] text-slate-400">urunimalatayarları.html reçete formüllerine göre hesaplanan imalat kesim ölçüleri.</p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-center text-xs font-mono">
+                    <thead class="bg-slate-900 text-slate-300 border-b border-slate-800 text-[10px] uppercase">
+                        <tr>
+                            <th class="p-2.5 border border-slate-800 text-center">No</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Ürün Tanımı</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Kasa En</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Kasa Boy</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Kasa En Boy Adet</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Kanat Boy</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Kanat Adet</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Tül Boy</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Tül Tp</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Tül Adet</th>
+                            <th class="p-2.5 border border-slate-800 text-center">İp Boy</th>
+                            <th class="p-2.5 border border-slate-800 text-center">İp Adet</th>
+                            <th class="p-2.5 border border-slate-800 text-center">Perçin Aralık</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kesimListesiTbody" class="divide-y divide-slate-800">
+                        <tr><td colspan="13" class="text-center py-6 text-slate-500 italic">Kesim listesi yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let imalatReceteleri = {};
+        let aktirilanSiparislerListesi = [];
+
+        async function initApp() {
+            try {
+                if (typeof firebaseConfig !== 'undefined') {
+                    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        hideOverlay();
+                        if (user) { document.getElementById('userEmailTag').textContent = user.email; }
+                        await loadImalatReceteleriOnce();
+                        loadGeciciAktirilanSiparisler();
+                    });
+                } else { hideOverlay(); }
+            } catch (err) { console.error("Init Error:", err); hideOverlay(); }
+            setTimeout(() => { hideOverlay(); }, 1500);
+
+            const tarihSpan = document.getElementById('txtAktifTarih');
+            if (tarihSpan) { tarihSpan.textContent = new Date().toLocaleDateString('tr-TR'); }
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('authCheckOverlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        async function loadImalatReceteleriOnce() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "imalat_kesim_receteleri"));
+                imalatReceteleri = {};
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const urunAdiKey = (data.hazirUrunAdi || docSnap.id).trim().toLowerCase();
+                    imalatReceteleri[urunAdiKey] = data.satirlar || [];
+                });
+            } catch (e) { console.error("Reçete yükleme hatası:", e); }
+        }
+
+        function loadGeciciAktirilanSiparisler() {
+            try {
+                const storedData = sessionStorage.getItem('gecici_imalat_siparisleri');
+                aktirilanSiparislerListesi = storedData ? JSON.parse(storedData) : [];
+                renderMusteriBasligi();
+                renderTablolar();
+            } catch (e) {
+                console.error("Geçici sipariş okuma hatası:", e);
+                aktirilanSiparislerListesi = [];
+            }
+        }
+
+        window.geciciListeyiTemizle = function() {
+            if (confirm("İmalat listesindeki geçici siparişleri temizlemek istediğinize emin misiniz?")) {
+                sessionStorage.removeItem('gecici_imalat_siparisleri');
+                aktirilanSiparislerListesi = [];
+                renderMusteriBasligi();
+                renderTablolar();
+            }
+        };
+
+        function renderMusteriBasligi() {
+            const txtAdi = document.getElementById('txtMusteriAdi');
+            const txtDetay = document.getElementById('txtMusteriDetay');
+            const badge = document.getElementById('txtSiparisKoduBadge');
+
+            if (aktirilanSiparislerListesi.length === 0) {
+                txtAdi.textContent = "Aktarılan Sipariş Bulunmuyor";
+                txtDetay.textContent = "Siparişler sayfasından herhangi bir siparişi imalata aktarabilirsiniz.";
+                badge.textContent = "S-0000";
+                return;
+            }
+
+            const aktifSiparis = aktirilanSiparislerListesi[aktirilanSiparislerListesi.length - 1];
+            txtAdi.textContent = aktifSiparis.musteriAdi || "İsimsiz Müşteri";
+            txtDetay.textContent = `Toplam Kalem: ${(aktifSiparis.kalemler || []).length}`;
+            badge.textContent = aktifSiparis.siparisNo || "S-0001";
+        }
+
+        function renderTablolar() {
+            const siparisTbody = document.getElementById('siparisOlcüleriTbody');
+            const kesimTbody = document.getElementById('kesimListesiTbody');
+            if (!siparisTbody || !kesimTbody) return;
+
+            siparisTbody.innerHTML = "";
+            kesimTbody.innerHTML = "";
+
+            if (aktirilanSiparislerListesi.length === 0) {
+                siparisTbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 italic">Aktarılan sipariş bulunmuyor.</td></tr>`;
+                kesimTbody.innerHTML = `<tr><td colspan="13" class="text-center py-6 text-slate-500 italic">Aktarılan sipariş bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            let genelSayac = 1;
+
+            aktirilanSiparislerListesi.forEach((sip) => {
+                const kalemler = sip.kalemler || [];
+
+                kalemler.forEach(kalem => {
+                    const siraNo = genelSayac++;
+                    const urunAdiKey = (kalem.hazirUrun || "").trim().toLowerCase();
+                    const receteSatirlari = imalatReceteleri[urunAdiKey] || [];
+
+                    const en = parseFloat(kalem.en) || 0;
+                    const boy = parseFloat(kalem.boy) || 0;
+                    const adet = parseFloat(kalem.adet) || 1;
+                    const renk = (kalem.renk || "").trim().toLowerCase();
+                    const tul = (kalem.tul || "").trim().toLowerCase();
+                    const eklenti = (kalem.eklenti || "").trim().toLowerCase();
+                    const not = kalem.not || '-';
+
+                    // 1. TABLO: SİPARİŞ ÖLÇÜLERİ SATIRI EKLE
+                    siparisTbody.innerHTML += `
+                        <tr class="hover:bg-slate-900/60">
+                            <td class="p-2.5 border border-slate-800 text-center font-bold text-indigo-400">${siraNo}</td>
+                            <td class="p-2.5 border border-slate-800 text-center font-semibold text-white">${kalem.hazirUrun}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${en}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${boy}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-indigo-300">${kalem.renk || '-'}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-purple-300">${kalem.tul || '-'}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-amber-300">${kalem.eklenti || '-'}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100 font-bold">${adet}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-400">${not}</td>
+                        </tr>
+                    `;
+
+                    // HESAPLAMA MATRİSİ
+                    let kesimVerileri = {
+                        kasaEn: "-", kasaBoy: "-", kasaEnBoyAdet: "-",
+                        kanatBoy: "-", kanatAdet: "-", tulBoy: "-",
+                        tulTp: "-", tulAdet: "-", ipBoy: "-",
+                        ipAdet: "-", percinAralik: "-"
+                    };
+
+                    if (receteSatirlari.length > 0) {
+                        receteSatirlari.forEach(satir => {
+                            const sRenk = (satir.renkKosulu || "herhangi").trim().toLowerCase();
+                            const sTul = (satir.tulKosulu || "herhangi").trim().toLowerCase();
+                            const sEklenti = (satir.eklentiKosulu || "herhangi").trim().toLowerCase();
+
+                            const renkUyuyor = (sRenk === 'herhangi' || sRenk === renk);
+                            const tulUyuyor = (sTul === 'herhangi' || sTul === tul);
+                            const eklentiUyuyor = (sEklenti === 'herhangi' || sEklenti === eklenti);
+
+                            if (renkUyuyor && tulUyuyor && eklentiUyuyor) {
+                                try {
+                                    let formulClean = (satir.kesimFormulu || "0")
+                                        .replace(/\[En\]/gi, en)
+                                        .replace(/\[Boy\]/gi, boy)
+                                        .replace(/\[Adet\]/gi, adet)
+                                        .replace(/\[Renk\]/gi, `"${renk}"`)
+                                        .replace(/\[Tül\]/gi, `"${tul}"`)
+                                        .replace(/\[Eklenti\]/gi, `"${eklenti}"`);
+
+                                    let sonuc = Function(`'use strict'; return (${formulClean})`)();
+                                    if (!isNaN(sonuc)) {
+                                        sonuc = Number(sonuc).toFixed(2);
+                                        const baslikId = (satir.baslikId || "").trim().toLowerCase();
+
+                                        if (baslikId === 'kasaen') kesimVerileri.kasaEn = sonuc;
+                                        else if (baslikId === 'kasaboy') kesimVerileri.kasaBoy = sonuc;
+                                        else if (baslikId === 'kasaenboyadet') kesimVerileri.kasaEnBoyAdet = sonuc;
+                                        else if (baslikId === 'kanatboy') kesimVerileri.kanatBoy = sonuc;
+                                        else if (baslikId === 'kanatadet') kesimVerileri.kanatAdet = sonuc;
+                                        else if (baslikId === 'tulboy') kesimVerileri.tulBoy = sonuc;
+                                        else if (baslikId === 'tultp') kesimVerileri.tulTp = sonuc;
+                                        else if (baslikId === 'tuladet') kesimVerileri.tulAdet = sonuc;
+                                        else if (baslikId === 'ipboy') kesimVerileri.ipBoy = sonuc;
+                                        else if (baslikId === 'ipadet') kesimVerileri.ipAdet = sonuc;
+                                        else if (baslikId === 'percinaralik') kesimVerileri.percinAralik = sonuc;
+                                    }
+                                } catch (e) { console.error("Formül hesaplama hatası:", e); }
+                            }
+                        });
+                    } else {
+                        kesimVerileri.kasaEn = (en - 2).toFixed(2);
+                        kesimVerileri.kasaBoy = (boy - 2).toFixed(2);
+                        kesimVerileri.kasaEnBoyAdet = adet;
+                        kesimVerileri.kanatBoy = (boy - 4).toFixed(2);
+                        kesimVerileri.kanatAdet = adet;
+                        kesimVerileri.tulBoy = (boy - 6).toFixed(2);
+                        kesimVerileri.tulTp = en;
+                        kesimVerileri.tulAdet = adet;
+                        kesimVerileri.ipBoy = (boy * 2).toFixed(2);
+                        kesimVerileri.ipAdet = adet;
+                        kesimVerileri.percinAralik = "25 cm";
+                    }
+
+                    // 2. TABLO: KESİM ÖLÇÜLERİ SATIRI EKLE
+                    kesimTbody.innerHTML += `
+                        <tr class="hover:bg-slate-900/60">
+                            <td class="p-2.5 border border-slate-800 text-center font-bold text-amber-400">${siraNo}</td>
+                            <td class="p-2.5 border border-slate-800 text-center font-semibold text-white">${kalem.hazirUrun}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.kasaEn}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.kasaBoy}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.kasaEnBoyAdet}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.kanatBoy}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.kanatAdet}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.tulBoy}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.tulTp}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.tulAdet}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.ipBoy}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.ipAdet}</td>
+                            <td class="p-2.5 border border-slate-800 text-center text-slate-100">${kesimVerileri.percinAralik}</td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        window.printKesimListesi = function() { window.print(); };
+
+        initApp();
+    </script>
+</body>
+</html>

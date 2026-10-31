@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ana Sayfa - İşletme Yönetim Sistemi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS (Excel İçe/Dışa Aktarma İçin) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+
+    <!-- GİRİŞ / KAYIT EKRANI (OTURUM AÇILMAMIŞSA GÖRÜNÜR) -->
+    <div id="loginScreen" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 hidden">
+        <div class="w-full max-w-md glass-card p-6 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
+            <div class="text-center space-y-1">
+                <div class="w-14 h-14 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl mx-auto flex items-center justify-center text-indigo-400 text-xl font-bold mb-3">
+                    <i class="fa-solid fa-cubes"></i>
+                </div>
+                <h2 id="formTitle" class="text-lg font-bold text-white tracking-tight">İşletme Yönetim Sistemi</h2>
+                <p id="formSubTitle" class="text-xs text-slate-400">Devam etmek için lütfen giriş yapın</p>
+            </div>
+
+            <form id="authForm" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">E-Posta Adresi</label>
+                    <input type="email" id="emailInput" required placeholder="ornek@sirket.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-slate-400 font-semibold mb-1">Şifre</label>
+                    <input type="password" id="passwordInput" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- BENİ HATIRLA & ŞİFREYİ UNUTTUM -->
+                <div class="flex items-center justify-between text-[11px]">
+                    <label class="flex items-center space-x-2 cursor-pointer text-slate-300">
+                        <input type="checkbox" id="rememberMeCheck" class="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 bg-slate-950 w-4 h-4">
+                        <span>Beni Hatırla</span>
+                    </label>
+                    <button type="button" id="toggleModeBtn" class="text-indigo-400 hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg active-scale">
+                    Giriş Yap
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ÜST BİLGİ ÇUBUĞU -->
+    <header class="w-full border-b border-slate-800 bg-slate-900/60 backdrop-blur-md p-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-sm font-bold">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-bold text-white uppercase tracking-wider">Ana Kontrol Paneli</h1>
+                <p id="userEmailDisplay" class="text-[10px] text-slate-400 truncate max-w-[180px]">Yükleniyor...</p>
+            </div>
+        </div>
+        <button type="button" id="btnLogout" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-300 border border-slate-700/80 text-xs font-semibold transition-all active-scale flex items-center gap-2">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hidden md:inline">Çıkış Yap</span>
+        </button>
+    </header>
+
+    <!-- ANA MENÜ BUTONLARI -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 flex flex-col justify-center items-center">
+        <div class="w-full text-center mb-6">
+            <h2 class="text-xl md:text-2xl font-bold text-white">Modüller</h2>
+            <p class="text-xs text-slate-400 mt-1">Gitmek istediğiniz modülü seçin</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+            
+            <!-- SİPARİŞ -->
+            <a href="siparis.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-indigo-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">SİPARİŞ</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Sipariş takibi ve yönetimi</p>
+                </div>
+            </a>
+
+            <!-- CARİ -->
+            <a href="cari.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">CARİ</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Müşteri ve cari hesap yönetimi</p>
+                </div>
+            </a>
+
+            <!-- İMALAT -->
+            <a href="imalat.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-amber-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-amber-600/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">İMALAT</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Üretim ve kesim işlemleri</p>
+                </div>
+            </a>
+
+            <!-- SATINALMA -->
+            <a href="satinalma.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">SATINALMA</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Tedarik ve satın alma yönetimi</p>
+                </div>
+            </a>
+
+            <!-- DEPO -->
+            <a href="depo.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-sky-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-sky-600/10 border border-sky-500/20 flex items-center justify-center text-sky-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-warehouse"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">DEPO</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Stok ve malzeme takibi</p>
+                </div>
+            </a>
+
+            <!-- YEDEKLE (YENİ EKLENEN BUTON) -->
+            <button type="button" onclick="window.openYedekModal()" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-purple-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group">
+                <div class="w-14 h-14 rounded-2xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">YEDEKLE / YÜKLE</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Excel & JSON yedek alma ve geri yükleme</p>
+                </div>
+            </button>
+
+            <!-- AYARLAR -->
+            <a href="ayarlar.html" class="glass-card p-6 rounded-2xl border border-slate-800 hover:border-purple-500/50 flex flex-col items-center text-center space-y-3 transition-all active-scale group sm:col-span-2 md:col-span-3">
+                <div class="w-14 h-14 rounded-2xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl group-hover:scale-110 transition-all">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-white">AYARLAR</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Sistem ayarları ve tanımlamalar</p>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <!-- YEDEKLEME & İÇERİ AKTARMA MODAL PANELİ -->
+    <div id="yedekModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-xl p-6 rounded-3xl border border-purple-500/30 space-y-5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-database text-purple-400"></i> Firebase Veritabanı Yedekleme & Aktarım
+                </h3>
+                <button type="button" onclick="window.closeYedekModal()" class="text-slate-400 hover:text-white p-1 text-xs">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- DURUM MESAJI / İLERLEME -->
+            <div id="yedekStatusBox" class="hidden p-3 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200 text-center font-semibold animate-pulse">
+                İşlem gerçekleştiriliyor, lütfen bekleyin...
+            </div>
+
+            <!-- 1. VERİLERİ DIŞA AKTAR (YEDEK AL) -->
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <i class="fa-solid fa-download"></i> Verileri Dışa Aktar (Yedek İndir)
+                </h4>
+                <p class="text-[11px] text-slate-400">Firebase üzerindeki tüm koleksiyonların verilerini bilgisayarınıza indirir.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button type="button" onclick="window.exportAllJSON()" class="py-2.5 px-4 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-bold transition-all active-scale flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-code text-sm"></i> JSON Olarak İndir
+                    </button>
+                    <button type="button" onclick="window.exportAllExcel()" class="py-2.5 px-4 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all active-scale flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-excel text-sm"></i> Excel (.xlsx) İndir
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. VERİLERİ İÇERİ AKTAR (GERİ YÜKLE) -->
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase">
+                    <i class="fa-solid fa-upload"></i> Verileri İçeri Aktar (Yedekten Geri Yükle)
+                </h4>
+                <p class="text-[11px] text-slate-400">Önceden aldığınız JSON veya Excel yedek dosyasını Firebase veritabanına aktarır.</p>
+
+                <div class="space-y-2 pt-1">
+                    <div>
+                        <label class="block text-[10px] text-slate-400 font-semibold mb-1">Yedek Dosyası Seçin (.json veya .xlsx)</label>
+                        <input type="file" id="yedekFileInput" accept=".json, .xlsx, .xls" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer bg-slate-950 border border-slate-800 rounded-xl">
+                    </div>
+                    
+                    <button type="button" onclick="window.importYedekDosyasi()" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Seçili Dosyayı Veritabanına Yükle
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="button" onclick="window.closeYedekModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold active-scale">
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALT BİLGİ -->
+    <footer class="w-full text-center py-4 text-[10px] text-slate-500 border-t border-slate-900">
+        İşletme Yönetim Sistemi &copy; 2026
+    </footer>
+
+    <!-- FIREBASE & AUTH SCRIPTS -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let isRegisterMode = false;
+
+        // YEDEKLEMEDE DİKKATE ALINACAK TÜM VERİTABANI KOLEKSİYONLARI
+        const KOLEKSIYON_LISTESI = [
+            "siparisler",
+            "cariler",
+            "depo_stoklari",
+            "tanimli_urunler",
+            "urun_maliyet_receteleri",
+            "imalat_kesim_receteleri",
+            "acilir_liste_ayarlari",
+            "kullanicilar",
+            "cari_hareketler"
+        ];
+
+        if (typeof firebaseConfig !== 'undefined') {
+            const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            // Oturum Durumu Kontrolü
+            onAuthStateChanged(auth, (user) => {
+                const loginScreen = document.getElementById('loginScreen');
+                if (user) {
+                    loginScreen.classList.add('hidden');
+                    document.getElementById('userEmailDisplay').textContent = user.email;
+                } else {
+                    loginScreen.classList.remove('hidden');
+                }
+            });
+        }
+
+        // Giriş / Kayıt Modu Değiştirme
+        const toggleModeBtn = document.getElementById('toggleModeBtn');
+        const formTitle = document.getElementById('formTitle');
+        const formSubTitle = document.getElementById('formSubTitle');
+        const submitBtn = document.getElementById('submitBtn');
+
+        toggleModeBtn.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            if (isRegisterMode) {
+                formTitle.textContent = "Yeni Hesap Oluştur";
+                formSubTitle.textContent = "Sisteme kayıt olmak için bilgilerinizi girin";
+                submitBtn.textContent = "Kayıt Ol";
+                toggleModeBtn.textContent = "Zaten hesabın var mı? Giriş Yap";
+            } else {
+                formTitle.textContent = "İşletme Yönetim Sistemi";
+                formSubTitle.textContent = "Devam etmek için lütfen giriş yapın";
+                submitBtn.textContent = "Giriş Yap";
+                toggleModeBtn.textContent = "Hesabın yok mu? Kayıt Ol";
+            }
+        });
+
+        // Form Gönderimi (Giriş / Kayıt)
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+            const rememberMe = document.getElementById('rememberMeCheck').checked;
+
+            if (!auth) {
+                alert("Firebase yapılandırması bulunamadı!");
+                return;
+            }
+
+            try {
+                const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistenceType);
+
+                if (isRegisterMode) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    alert("Kayıt başarılı! Giriş yapıldı.");
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                alert("İşlem Hatası: " + error.message);
+            }
+        });
+
+        // Çıkış Yap Butonu
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if (auth) {
+                await signOut(auth);
+            }
+        });
+
+        // MODAL AÇ / KAPAT
+        window.openYedekModal = function() {
+            document.getElementById('yedekModal').classList.remove('hidden');
+        };
+
+        window.closeYedekModal = function() {
+            document.getElementById('yedekModal').classList.add('hidden');
+            document.getElementById('yedekStatusBox').classList.add('hidden');
+        };
+
+        function showStatus(msg) {
+            const box = document.getElementById('yedekStatusBox');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            document.getElementById('yedekStatusBox').classList.add('hidden');
+        }
+
+        // --- 1. TÜM VERİLERİ YÜKLEYİP DÖNDÜREN YARDIMCI FONKSİYON ---
+        async function fetchAllDatabaseData() {
+            let fullData = {};
+            for (const colName of KOLEKSIYON_LISTESI) {
+                try {
+                    const snap = await getDocs(collection(db, colName));
+                    fullData[colName] = [];
+                    snap.forEach(docSnap => {
+                        let data = docSnap.data();
+                        data._docId = docSnap.id; // Belge ID'sini korumak için saklıyoruz
+                        fullData[colName].push(data);
+                    });
+                } catch (e) {
+                    console.error(`${colName} okunurken hata:`, e);
+                }
+            }
+            return fullData;
+        }
+
+        // --- 2. JSON DIŞA AKTAR (YEDEK AL) ---
+        window.exportAllJSON = async function() {
+            try {
+                showStatus("Tüm veritabanı JSON formatında hazırlanıyor...");
+                const allData = await fetchAllDatabaseData();
+                
+                const jsonStr = JSON.stringify(allData, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement("a");
+                const tarih = new Date().toISOString().slice(0,10);
+                a.href = url;
+                a.download = `Firebase_Yedek_${tarih}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                hideStatus();
+                alert("JSON Yedeğiniz başarıyla indirildi!");
+            } catch (err) {
+                hideStatus();
+                alert("JSON Yedekleme Hatası: " + err.message);
+            }
+        };
+
+        // --- 3. EXCEL (.XLSX) DIŞA AKTAR (YEDEK AL) ---
+        window.exportAllExcel = async function() {
+            try {
+                showStatus("Tüm veriler Excel dosyasına dönüştürülüyor...");
+                const allData = await fetchAllDatabaseData();
+                
+                const wb = XLSX.utils.book_new();
+
+                for (const colName of KOLEKSIYON_LISTESI) {
+                    const rows = allData[colName] || [];
+                    // Karmaşık nesneleri / dizileri Excel için String formatına çevirelim
+                    const cleanedRows = rows.map(r => {
+                        let cleanObj = {};
+                        for (let k in r) {
+                            if (typeof r[k] === 'object' && r[k] !== null) {
+                                cleanObj[k] = JSON.stringify(r[k]);
+                            } else {
+                                cleanObj[k] = r[k];
+                            }
+                        }
+                        return cleanObj;
+                    });
+
+                    const ws = XLSX.utils.json_to_sheet(cleanedRows);
+                    // Excel sayfa isimleri max 31 karakter olmalıdır
+                    let sheetName = colName.substring(0, 31);
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                }
+
+                const tarih = new Date().toISOString().slice(0,10);
+                XLSX.writeFile(wb, `Firebase_Yedek_${tarih}.xlsx`);
+
+                hideStatus();
+                alert("Excel Yedeğiniz başarıyla indirildi!");
+            } catch (err) {
+                hideStatus();
+                alert("Excel Yedekleme Hatası: " + err.message);
+            }
+        };
+
+        // --- 4. SEÇİLEN DOSYADAN VERİLERİ VERİTABANINA GERİ YÜKLE (İÇERİ AKTAR) ---
+        window.importYedekDosyasi = async function() {
+            const fileInput = document.getElementById('yedekFileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Lütfen yüklenecek bir yedek dosyası seçiniz!");
+                return;
+            }
+
+            if (!confirm("Seçtiğiniz dosyadaki veriler Firebase veritabanına aktarılacaktır. Devam etmek istiyor musunuz?")) {
+                return;
+            }
+
+            try {
+                showStatus("Dosya okunuyor ve veritabanına aktarılıyor...");
+                const fileName = file.name.toLowerCase();
+
+                if (fileName.endsWith('.json')) {
+                    const text = await file.text();
+                    const jsonData = JSON.parse(text);
+                    await processImportJSON(jsonData);
+                } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+                    await processImportExcel(wb);
+                } else {
+                    alert("Desteklenmeyen dosya formatı! Lütfen .json veya .xlsx dosyası seçin.");
+                    hideStatus();
+                    return;
+                }
+
+                hideStatus();
+                alert("Yedek veriler başarıyla veritabanına aktarıldı!");
+                fileInput.value = "";
+                window.closeYedekModal();
+            } catch (err) {
+                hideStatus();
+                alert("Yükleme Hatası: " + err.message);
+            }
+        };
+
+        // JSON İÇERİ AKTARMA İŞLEYİCİSİ
+        async function processImportJSON(jsonData) {
+            for (const colName in jsonData) {
+                const docList = jsonData[colName];
+                if (Array.isArray(docList)) {
+                    for (const item of docList) {
+                        let docId = item._docId || item.id || null;
+                        let itemData = { ...item };
+                        delete itemData._docId; // Geçici alan silinsin
+
+                        if (docId) {
+                            await setDoc(doc(db, colName, String(docId)), itemData, { merge: true });
+                        } else {
+                            await setDoc(doc(db, colName, doc(collection(db, colName)).id), itemData, { merge: true });
+                        }
+                    }
+                }
+            }
+        }
+
+        // EXCEL İÇERİ AKTARMA İŞLEYİCİSİ
+        async function processImportExcel(wb) {
+            for (const sheetName of wb.SheetNames) {
+                const ws = wb.Sheets[sheetName];
+                const rawRows = XLSX.utils.sheet_to_json(ws);
+                
+                // Orijinal koleksiyon adını eşleştirelim
+                let colName = sheetName;
+                
+                for (const row of rawRows) {
+                    let docId = row._docId || null;
+                    let itemData = {};
+
+                    // JSON string'e dönüştürülmüş objeleri (kalemler, yetkiler vb.) geri parse edelim
+                    for (let key in row) {
+                        if (key === '_docId') continue;
+
+                        let val = row[key];
+                        if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+                            try {
+                                itemData[key] = JSON.parse(val);
+                            } catch (e) {
+                                itemData[key] = val;
+                            }
+                        } else {
+                            itemData[key] = val;
+                        }
+                    }
+
+                    if (docId) {
+                        await setDoc(doc(db, colName, String(docId)), itemData, { merge: true });
+                    } else {
+                        await setDoc(doc(db, colName, doc(collection(db, colName)).id), itemData, { merge: true });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

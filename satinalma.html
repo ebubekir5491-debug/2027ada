@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Satın Alma Yönetimi - İşletme Yönetim Sistemi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .active-scale:active { transform: scale(0.97); }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* YAZDIRMA / İRSALİYE MODU (SADECE İRSALİYE, YATAY A4, ORTALANMIŞ) */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+            body { 
+                background: white !important; 
+                color: black !important; 
+                font-family: Arial, sans-serif !important; 
+            }
+            body * {
+                visibility: hidden !important;
+            }
+            #printArea, #printArea * {
+                visibility: visible !important;
+            }
+            #printArea { 
+                display: block !important; 
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important; 
+                padding: 10px !important; 
+                margin: 0 !important;
+                text-align: center !important;
+                background: white !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+
+    <!-- OTURUM KONTROL OVERLAY -->
+    <div id="authCheckOverlay" class="fixed inset-0 z-50 glass-modal flex flex-col justify-center items-center p-6 transition-all duration-300">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl font-bold mb-4 animate-pulse">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-base font-semibold text-white tracking-tight">Oturum Kontrol Ediliyor</h2>
+        <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Yetkiniz doğrulanıyor, lütfen bekleyin...</p>
+    </div>
+
+    <!-- ÜST BİLGİ VE NAVİGASYON ÇUBUĞU -->
+    <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex justify-between items-center z-40">
+        <div class="flex items-center space-x-3">
+            <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Ana Sayfa">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-bag-shopping text-emerald-400"></i>
+                    <span>SATIN ALMA YÖNETİMİ</span>
+                </h1>
+                <p id="userEmailTag" class="text-[10px] text-slate-400 truncate max-w-[200px]">Kullanıcı</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="depo.html" class="px-3 py-2 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-semibold transition-all active-scale flex items-center gap-1.5">
+                <i class="fa-solid fa-warehouse"></i> Depo Sayfası
+            </a>
+            <button type="button" id="btnLogout" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700/80 flex items-center justify-center transition-all active-scale" title="Çıkış">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- ARAMA VE BAŞLIK -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
+            <div>
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-cart-flatbed text-emerald-400"></i> Malzeme Talep & Sipariş Listesi
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">Ürün Tanımla sayfasındaki kayıtlı malzemelerden seçerek sepet oluşturun.</p>
+            </div>
+            <div class="w-full md:w-72">
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-xs text-slate-500"></i>
+                    <input type="text" id="searchInput" placeholder="Ürün kodu, malzeme veya grup ara..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- İKİ SÜTUNLU YAPI (SOL: ÜRÜN SEÇME, SAĞ: SEPET) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- SOL TARAF: TANIMLI ÜRÜNLER (7 Sütun) -->
+            <div class="lg:col-span-7 space-y-3">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-indigo-400"></i> Tanımlı Malzemeler (Seçmek İçin Tıklayın)
+                </h3>
+                
+                <div id="tanimliUrunlerContainer" class="space-y-2 max-h-[550px] overflow-y-auto pr-1">
+                    <div class="text-slate-500 italic text-xs">Tanımlı ürünler yükleniyor...</div>
+                </div>
+            </div>
+
+            <!-- SAĞ TARAF: SATIN ALMA SEPETİ (5 Sütun) -->
+            <div class="lg:col-span-5 space-y-3">
+                <div class="glass-card p-4 rounded-2xl border border-emerald-500/30 space-y-4 sticky top-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-list-check"></i> Satın Alma Sepeti
+                        </h3>
+                        <span id="sepetCountBadge" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-[10px] font-bold">0 Kalem</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-slate-400 font-semibold mb-1">Tedarikçi / Not Bilgisi (Opsiyonel)</label>
+                        <input type="text" id="inputTedarikci" placeholder="Örn: ABC Alüminyum Ltd. Şti." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div id="sepetListContainer" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <div class="text-slate-500 italic text-xs text-center py-6">Sepette henüz malzeme yok. Soldan ürün seçin.</div>
+                    </div>
+
+                    <button type="button" id="btnSatinAlmaBaslat" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Satın Alma Başlat (Sipariş Oluştur)</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- AKTİF SATIN ALMA TALEPLERİ LİSTESİ -->
+        <div class="space-y-3 pt-6 border-t border-slate-800">
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left"></i> Satın Alma Kayıtları (Detay için üzerine tıklayın)
+            </h3>
+            <div id="aktifSatinalmalarContainer" class="space-y-2">
+                <div class="text-slate-500 italic text-xs">Satın alma kayıtları yükleniyor...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- DETAY / TEYİT MODAL PENCERESİ -->
+    <div id="detayModal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+        <div class="w-full max-w-2xl glass-card p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 id="modalBaslik" class="text-sm font-bold text-white">Satın Alma Detayı</h3>
+                    <p id="modalAltBaslik" class="text-[10px] text-slate-400">Tedarikçi ve Kalem Bilgileri</p>
+                </div>
+                <button type="button" id="btnCloseModal" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <p class="text-[11px] text-slate-300 font-semibold">Malzeme Kalemleri (Gelen Miktar ve Kalem Toplam Tutarını Girin):</p>
+                <div id="modalKalemlerContainer" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                    <!-- Dinamik Kalemler -->
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 flex items-center justify-between gap-3">
+                <span id="modalDurumBadge" class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold text-[10px]">Beklemede</span>
+                <div class="flex gap-2">
+                    <button type="button" id="btnPrintPdf" class="px-3 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> PDF / İrsaliye Yazdır
+                    </button>
+                    <button type="button" id="btnTeyitVer" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg active-scale flex items-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> Teyit Ver & Depoya Aktar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GİZLİ YAZDIRMA ALANI (SADECE İRSALİYE TABLOSU VE BAŞLIKLARI, ORTALANMIŞ) -->
+    <div id="printArea" class="hidden" style="font-family: Arial, sans-serif; color: black; background: white; padding: 15px; text-align: center;">
+        <div style="border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; width: 100%;">
+            <h2 style="font-size: 20px; font-weight: bold; margin: 0; text-align: center;">MALZEME İRSALİYE / SEVK LİSTESİ</h2>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px;">
+                <span id="printSatinAlmaKodu" style="font-weight: bold;">KOD: -</span>
+                <span id="printTedarikci">Tedarikçi: -</span>
+                <span id="printTarih">Tarih: -</span>
+            </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin: 0 auto; text-align: center;">
+            <thead>
+                <tr style="background-color: #f1f5f9; border-bottom: 2px solid #000;">
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Ürün Kodu</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Mal Grubu</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Malzeme Tanımı</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Renk</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Sipariş Miktar</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Gelen Miktar</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Birim Fiyat</th>
+                    <th style="padding: 6px; border: 1px solid #000; text-align: center;">Toplam Tutar</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody">
+                <!-- Kalemler -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FIREBASE & SCRIPT -->
+    <script src="firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let auth = null;
+        let db = null;
+        let currentUserEmail = "";
+        let isUserAdmin = false;
+        let tumTanimliUrunler = [];
+        let satinAlmaSepeti = [];
+        let aktifSatinalmaListesi = [];
+        let selectedRecordId = null;
+
+        async function initApp() {
+            if (typeof firebaseConfig !== 'undefined') {
+                const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    document.getElementById('authCheckOverlay').classList.add('hidden');
+                    if (user) {
+                        currentUserEmail = user.email;
+                        document.getElementById('userEmailTag').textContent = user.email;
+                        await checkUserAdminRole(user.uid);
+                    }
+                });
+
+                loadTanimliUrunlerFromFirebase();
+                loadAktifSatinalmalarFromFirebase();
+            }
+
+            setTimeout(() => {
+                document.getElementById('authCheckOverlay').classList.add('hidden');
+            }, 2000);
+        }
+
+        async function checkUserAdminRole(uid) {
+            try {
+                const userDoc = await getDoc(doc(db, "kullanicilar", uid));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    isUserAdmin = !!(data.yetkiler && data.yetkiler.tumYetkiler);
+                }
+            } catch (e) {
+                console.error("Yetki kontrol hatası:", e);
+            }
+        }
+
+        const handleLogout = async () => {
+            if (auth) { await signOut(auth); window.location.href = "index.html"; }
+        };
+
+        document.getElementById('btnLogout').addEventListener('click', handleLogout);
+
+        // 1. ÜRÜNLERİ ÇEK (MAL GRUBU DAHİL)
+        function loadTanimliUrunlerFromFirebase() {
+            onSnapshot(collection(db, "tanimli_urunler"), (snapshot) => {
+                tumTanimliUrunler = [];
+                snapshot.forEach(docSnap => {
+                    tumTanimliUrunler.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderTanimliUrunler(tumTanimliUrunler);
+            });
+        }
+
+        function renderTanimliUrunler(list) {
+            const container = document.getElementById('tanimliUrunlerContainer');
+            container.innerHTML = "";
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 italic text-xs p-4 glass-card rounded-xl">Kayıtlı ürün bulunamadı. Lütfen "Sistem Ayarları > Ürün Tanımla" sayfasından ürün ekleyin.</div>`;
+                return;
+            }
+
+            list.forEach(urun => {
+                let imgTag = urun.gorsel 
+                    ? `<img src="${urun.gorsel}" class="w-12 h-12 rounded-xl object-cover border border-slate-700 flex-shrink-0">`
+                    : `<div class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">Görsel Yok</div>`;
+
+                const sepetteMi = satinAlmaSepeti.some(item => item.urunId === urun.id);
+                const btnStyle = sepetteMi 
+                    ? `bg-emerald-600 text-white` 
+                    : `bg-slate-800 hover:bg-emerald-600/30 text-slate-300 border border-slate-700`;
+
+                container.innerHTML += `
+                    <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 text-xs transition-all hover:border-slate-700">
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            ${imgTag}
+                            <div class="truncate">
+                                <h4 class="font-bold text-white truncate">${urun.urunKodu} - ${urun.malzemeTanimi}</h4>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Grup: <strong class="text-emerald-400">${urun.malGrubu || 'Belirtilmemiş'}</strong> | Renk: <strong class="text-slate-200">${urun.renk || 'Belirtilmemiş'}</strong> | Birim: <strong class="text-indigo-400">${urun.olcuBirimi || 'Adet'}</strong></p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="window.sepeteUrunEkle('${urun.id}')" class="px-3 py-2 rounded-xl text-xs font-bold transition-all active-scale flex-shrink-0 ${btnStyle}">
+                            ${sepetteMi ? '<i class="fa-solid fa-check"></i> Eklendi' : '<i class="fa-solid fa-plus"></i> Ekle'}
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtrelenmis = tumTanimliUrunler.filter(u => 
+                (u.urunKodu && u.urunKodu.toLowerCase().includes(val)) || 
+                (u.malzemeTanimi && u.malzemeTanimi.toLowerCase().includes(val)) ||
+                (u.malGrubu && u.malGrubu.toLowerCase().includes(val)) ||
+                (u.renk && u.renk.toLowerCase().includes(val))
+            );
+            renderTanimliUrunler(filtrelenmis);
+        });
+
+        // 2. SEPET YÖNETİMİ
+        window.sepeteUrunEkle = function(urunId) {
+            const urun = tumTanimliUrunler.find(u => u.id === urunId);
+            if (!urun) return;
+
+            const existingIndex = satinAlmaSepeti.findIndex(item => item.urunId === urunId);
+            if (existingIndex > -1) {
+                satinAlmaSepeti.splice(existingIndex, 1);
+            } else {
+                satinAlmaSepeti.push({
+                    urunId: urun.id,
+                    urunKodu: urun.urunKodu || "",
+                    malzemeTanimi: urun.malzemeTanimi || "",
+                    malGrubu: urun.malGrubu || "",
+                    renk: urun.renk || "",
+                    olcuBirimi: urun.olcuBirimi || "Adet",
+                    gorsel: urun.gorsel || "",
+                    siparisMiktar: 1,
+                    gelenMiktar: 1,
+                    toplamTutar: 0
+                });
+            }
+            renderSepet();
+            renderTanimliUrunler(tumTanimliUrunler);
+        };
+
+        window.sepettenKalemSil = function(urunId) {
+            satinAlmaSepeti = satinAlmaSepeti.filter(item => item.urunId !== urunId);
+            renderSepet();
+            renderTanimliUrunler(tumTanimliUrunler);
+        };
+
+        window.sepetMiktarGuncelle = function(urunId, yeniMiktar) {
+            const item = satinAlmaSepeti.find(i => i.urunId === urunId);
+            if (item) {
+                item.siparisMiktar = parseFloat(yeniMiktar) || 0;
+                item.gelenMiktar = item.siparisMiktar;
+            }
+        };
+
+        function renderSepet() {
+            const container = document.getElementById('sepetListContainer');
+            const badge = document.getElementById('sepetCountBadge');
+            container.innerHTML = "";
+            badge.textContent = `${satinAlmaSepeti.length} Kalem`;
+
+            if (satinAlmaSepeti.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 italic text-xs text-center py-6">Sepette henüz malzeme yok. Soldan ürün seçin.</div>`;
+                return;
+            }
+
+            satinAlmaSepeti.forEach((item) => {
+                container.innerHTML += `
+                    <div class="glass-card p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-white">${item.urunKodu} - ${item.malzemeTanimi}</h4>
+                                <span class="text-[10px] text-slate-400">Grup: <strong class="text-emerald-400">${item.malGrubu || 'Belirtilmemiş'}</strong> | Renk: ${item.renk || 'Belirtilmemiş'} | Birim: <strong class="text-indigo-400">${item.olcuBirimi}</strong></span>
+                            </div>
+                            <button type="button" onclick="window.sepettenKalemSil('${item.urunId}')" class="text-rose-400 hover:text-rose-300 p-1">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+                            <label class="text-[10px] text-slate-400 font-semibold">Miktar:</label>
+                            <input type="number" min="0.01" step="any" value="${item.siparisMiktar}" onchange="window.sepetMiktarGuncelle('${item.urunId}', this.value)" class="w-24 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 text-center font-bold focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 3. SATIN ALMA BAŞLAT
+        document.getElementById('btnSatinAlmaBaslat').addEventListener('click', async () => {
+            if (satinAlmaSepeti.length === 0) {
+                alert("Satın alma başlatmak için sepete en az bir malzeme eklemelisiniz!");
+                return;
+            }
+
+            const tedarikci = document.getElementById('inputTedarikci').value.trim() || "Genel Tedarikçi";
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "satinalma_islemleri"));
+                let maxNum = 0;
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.satinAlmaKodu && data.satinAlmaKodu.startsWith("SAT-")) {
+                        const numPart = parseInt(data.satinAlmaKodu.replace("SAT-", ""), 10);
+                        if (!isNaN(numPart) && numPart > maxNum) {
+                            maxNum = numPart;
+                        }
+                    }
+                });
+
+                const yeniKodNum = maxNum + 1;
+                const siraliKod = "SAT-" + String(yeniKodNum).padStart(4, '0');
+
+                const yeniSatinAlma = {
+                    satinAlmaKodu: siraliKod,
+                    tedarikci: tedarikci,
+                    kalemler: satinAlmaSepeti,
+                    durum: "Beklemede",
+                    createdAt: new Date()
+                };
+
+                await addDoc(collection(db, "satinalma_islemleri"), yeniSatinAlma);
+                alert(`Satın alma başarıyla başlatıldı!\nSatın Alma Kodu: ${siraliKod}`);
+                
+                satinAlmaSepeti = [];
+                document.getElementById('inputTedarikci').value = "";
+                renderSepet();
+                renderTanimliUrunler(tumTanimliUrunler);
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
+        });
+
+        // 4. AKTİF SATIN ALMALARI LİSTELE
+        function loadAktifSatinalmalarFromFirebase() {
+            const q = query(collection(db, "satinalma_islemleri"), orderBy("createdAt", "desc"));
+            onSnapshot(q, (snapshot) => {
+                aktifSatinalmaListesi = [];
+                const container = document.getElementById('aktifSatinalmalarContainer');
+                container.innerHTML = "";
+
+                if (snapshot.empty) {
+                    container.innerHTML = `<div class="text-slate-500 italic text-xs">Henüz başlatılmış bir satın alma kaydı bulunmuyor.</div>`;
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    aktifSatinalmaListesi.push({ id: docSnap.id, ...data });
+                });
+
+                aktifSatinalmaListesi.forEach((data) => {
+                    const kalemSayisi = data.kalemler ? data.kalemler.length : 0;
+                    const isTamamlandi = data.durum === "Tamamlandı (Depoya Aktarıldı)";
+                    let badgeColor = isTamamlandi ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+
+                    container.innerHTML += `
+                        <div onclick="window.openDetayModal('${data.id}')" class="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs cursor-pointer hover:border-emerald-500/50 transition-all">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">${data.satinAlmaKodu}</h4>
+                                    <span class="text-[10px] text-slate-400">Tedarikçi: <strong class="text-slate-200">${data.tedarikci}</strong> | Kalem Sayısı: <strong>${kalemSayisi}</strong></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-1 rounded-full border font-semibold text-[10px] ${badgeColor}">${data.durum || 'Beklemede'}</span>
+                                <button type="button" onclick="event.stopPropagation(); window.deleteSatinAlma('${data.id}')" class="text-rose-400 hover:text-rose-300 p-2" title="Kaydı Sil">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // 5. MODAL PENCERE VE YETKİ KONTROLÜ
+        window.openDetayModal = function(recordId) {
+            selectedRecordId = recordId;
+            const record = aktifSatinalmaListesi.find(r => r.id === recordId);
+            if (!record) return;
+
+            document.getElementById('modalBaslik').textContent = `Satın Alma Detayı: ${record.satinAlmaKodu}`;
+            document.getElementById('modalAltBaslik').textContent = `Tedarikçi: ${record.tedarikci}`;
+            
+            const durumBadge = document.getElementById('modalDurumBadge');
+            durumBadge.textContent = record.durum || 'Beklemede';
+
+            const isTamamlandi = record.durum === "Tamamlandı (Depoya Aktarıldı)";
+            const btnTeyitVer = document.getElementById('btnTeyitVer');
+
+            if (isTamamlandi && !isUserAdmin) {
+                btnTeyitVer.disabled = true;
+                btnTeyitVer.classList.add('opacity-50', 'cursor-not-allowed');
+                btnTeyitVer.title = "Bu kayıt teyit edilmiştir. Sadece Tüm Yetkilere sahip yöneticiler değişiklik yapabilir.";
+            } else {
+                btnTeyitVer.disabled = false;
+                btnTeyitVer.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnTeyitVer.title = "";
+            }
+
+            const container = document.getElementById('modalKalemlerContainer');
+            container.innerHTML = "";
+
+            if (record.kalemler) {
+                record.kalemler.forEach((k, idx) => {
+                    const sipMiktar = k.siparisMiktar !== undefined ? k.siparisMiktar : (k.miktar || 1);
+                    const gelMiktar = k.gelenMiktar !== undefined ? k.gelenMiktar : sipMiktar;
+                    const toplamTutar = k.toplamTutar !== undefined ? k.toplamTutar : 0;
+                    const isDisabledAttr = (isTamamlandi && !isUserAdmin) ? "disabled" : "";
+
+                    container.innerHTML += `
+                        <div class="glass-card p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <h4 class="font-bold text-white">${k.urunKodu} - ${k.malzemeTanimi}</h4>
+                                <span class="text-[10px] text-emerald-400">Grup: ${k.malGrubu || 'Belirtilmemiş'} | Birim: ${k.olcuBirimi || 'Adet'}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">Sipariş Edilen: <strong class="text-slate-200">${sipMiktar} ${k.olcuBirimi}</strong> | Renk: ${k.renk || 'Belirtilmemiş'}</div>
+                            
+                            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+                                <div>
+                                    <label class="block text-[9px] text-slate-400 font-semibold mb-1">Gelen Miktar:</label>
+                                    <input type="number" min="0" step="any" id="gelenMiktar_${idx}" value="${gelMiktar}" ${isDisabledAttr} class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-bold focus:outline-none focus:border-emerald-500 disabled:opacity-50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-slate-400 font-semibold mb-1">Kalem Toplam Tutar (TL):</label>
+                                    <input type="number" min="0" step="any" id="toplamTutar_${idx}" value="${toplamTutar}" ${isDisabledAttr} class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-bold focus:outline-none focus:border-emerald-500 disabled:opacity-50">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('detayModal').classList.remove('hidden');
+        };
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            document.getElementById('detayModal').classList.add('hidden');
+        });
+
+        // 6. PDF / İRSALİYE YAZDIRMA (SADECE TABLO VE BAŞLIKLAR, ORTALANMIŞ, A4 YATAY)
+        document.getElementById('btnPrintPdf').addEventListener('click', () => {
+            const record = aktifSatinalmaListesi.find(r => r.id === selectedRecordId);
+            if (!record) return;
+
+            document.getElementById('printSatinAlmaKodu').textContent = `İRSALİYE KODU: ${record.satinAlmaKodu}`;
+            document.getElementById('printTedarikci').textContent = `TEDARİKÇİ: ${record.tedarikci}`;
+            document.getElementById('printTarih').textContent = `TARİH: ${new Date().toLocaleDateString('tr-TR')}`;
+
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = "";
+
+            let genelToplam = 0;
+            if (record.kalemler) {
+                record.kalemler.forEach((k, idx) => {
+                    const sipMiktar = k.siparisMiktar !== undefined ? k.siparisMiktar : (k.miktar || 1);
+                    // Anlık input değerlerini de hesaba katalım
+                    const gelenInput = document.getElementById(`gelenMiktar_${idx}`);
+                    const tutarInput = document.getElementById(`toplamTutar_${idx}`);
+                    const gelMiktar = gelenInput ? (parseFloat(gelenInput.value) || 0) : (k.gelenMiktar !== undefined ? k.gelenMiktar : sipMiktar);
+                    const toplam = tutarInput ? (parseFloat(tutarInput.value) || 0) : (k.toplamTutar !== undefined ? k.toplamTutar : 0);
+                    const birimFiyat = gelMiktar > 0 ? (toplam / gelMiktar) : 0;
+                    genelToplam += toplam;
+
+                    tbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid #000;">
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${k.urunKodu}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${k.malGrubu || '-'}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${k.malzemeTanimi}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${k.renk || '-'}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${sipMiktar} ${k.olcuBirimi}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center; font-weight: bold;">${gelMiktar} ${k.olcuBirimi}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center;">${birimFiyat.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                            <td style="padding: 6px; border: 1px solid #000; text-align: center; font-weight: bold;">${toplam.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            tbody.innerHTML += `
+                <tr style="background-color: #f1f5f9;">
+                    <td colspan="7" style="padding: 8px; text-align: right; font-weight: bold; border: 1px solid #000;">GENEL TOPLAM:</td>
+                    <td style="padding: 8px; text-align: center; font-weight: bold; border: 1px solid #000;">${genelToplam.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</td>
+                </tr>
+            `;
+
+            window.print();
+        });
+
+        // 7. TEYİT VER & DEPOYA AKTAR / GÜNCELLE
+        document.getElementById('btnTeyitVer').addEventListener('click', async () => {
+            if (!selectedRecordId) return;
+            const record = aktifSatinalmaListesi.find(r => r.id === selectedRecordId);
+            if (!record) return;
+
+            const isTamamlandi = record.durum === "Tamamlandı (Depoya Aktarıldı)";
+            if (isTamamlandi && !isUserAdmin) {
+                alert("Bu kayıt daha önce teyit edilmiştir. Değişiklik yapmak için 'Tüm Yetkiler' yetkisine sahip olmalısınız!");
+                return;
+            }
+
+            if (record.kalemler) {
+                record.kalemler.forEach((k, idx) => {
+                    const gelenInput = document.getElementById(`gelenMiktar_${idx}`);
+                    const tutarInput = document.getElementById(`toplamTutar_${idx}`);
+                    
+                    if (gelenInput) k.gelenMiktar = parseFloat(gelenInput.value) || 0;
+                    if (tutarInput) k.toplamTutar = parseFloat(tutarInput.value) || 0;
+
+                    // Birim fiyatı otomatik hesapla (Toplam Tutar / Gelen Miktar)
+                    if (k.gelenMiktar > 0) {
+                        k.birimFiyat = k.toplamTutar / k.gelenMiktar;
+                    } else {
+                        k.birimFiyat = 0;
+                    }
+                });
+            }
+
+            try {
+                const satinalmaRef = doc(db, "satinalma_islemleri", selectedRecordId);
+                await updateDoc(satinalmaRef, {
+                    kalemler: record.kalemler,
+                    durum: "Tamamlandı (Depoya Aktarıldı)"
+                });
+
+                const depoQuery = query(collection(db, "depo_stoklari"));
+                const depoSnap = await getDocs(depoQuery);
+
+                for (const item of record.kalemler) {
+                    let existingDepoDocId = null;
+                    depoSnap.forEach(dSnap => {
+                        const dData = dSnap.data();
+                        if (dData.satinAlmaKodu === record.satinAlmaKodu && dData.urunKodu === item.urunKodu) {
+                            existingDepoDocId = dSnap.id;
+                        }
+                    });
+
+                    if (existingDepoDocId) {
+                        await updateDoc(doc(db, "depo_stoklari", existingDepoDocId), {
+                            miktar: item.gelenMiktar,
+                            birimFiyat: item.birimFiyat,
+                            toplamTutar: item.toplamTutar,
+                            guncellemeTarihi: new Date()
+                        });
+                    } else {
+                        await addDoc(collection(db, "depo_stoklari"), {
+                            urunKodu: item.urunKodu,
+                            malzemeTanimi: item.malzemeTanimi,
+                            malGrubu: item.malGrubu || "",
+                            renk: item.renk || "",
+                            olcuBirimi: item.olcuBirimi || "Adet",
+                            miktar: item.gelenMiktar,
+                            birimFiyat: item.birimFiyat,
+                            toplamTutar: item.toplamTutar,
+                            tedarikci: record.tedarikci,
+                            satinAlmaKodu: record.satinAlmaKodu,
+                            gorsel: item.gorsel || "",
+                            guncellemeTarihi: new Date()
+                        });
+                    }
+                }
+
+                alert("Teyit başarıyla verildi, depo stokları güncellendi ve senkronize edildi!");
+                document.getElementById('detayModal').classList.add('hidden');
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
+        });
+
+        window.deleteSatinAlma = async function(docId) {
+            if (confirm("Bu satın alma kaydını silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "satinalma_islemleri", docId));
+                } catch (e) {
+                    alert("Silme hatası: " + e.message);
+                }
+            }
+        };
+
+        initApp();
+    </script>
+</body>
+</html>
