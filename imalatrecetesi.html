@@ -101,15 +101,15 @@
 
             <div class="space-y-2.5 overflow-y-auto pr-1 flex-1 text-xs">
                 <div>
-                    <label class="text-[10px] text-slate-400 mb-1 block font-semibold">Sistemde Ekli Ürün Tanımı Seçin</label>
+                    <label class="text-[10px] text-slate-400 mb-1 block font-semibold">Ürünler (Urunler.html) Sayfasından Kayıtlı Ürün Seçin</label>
                     <select id="selectAnaUrun" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
-                        <option value="">-- Ürün Tanımı Seçiniz --</option>
+                        <option value="">-- Kayıtlı Ürün Reçetesi Seçiniz --</option>
                     </select>
                 </div>
 
                 <div class="border-t border-slate-800 pt-2.5 space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">Reçete Malzemeleri ve Formüller</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">Malzemeler ve Formüller</span>
                         <button type="button" id="btnAddRow" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-semibold transition-all active-scale flex items-center gap-1">
                             <i class="fa-solid fa-plus text-[9px]"></i> Formül Satırı Ekle
                         </button>
@@ -135,7 +135,7 @@
 
         let auth = null;
         let db = null;
-        let tanimliUrunlerCache = [];
+        let siparisUrunleriCache = [];
         let receteCache = {};
         let authChecked = false;
 
@@ -154,7 +154,7 @@
                         if (user) {
                             document.getElementById('userEmailTag').textContent = user.email;
                         }
-                        loadTanimliUrunler();
+                        loadSiparisUrunleri();
                         loadReceteler();
                     }
                 });
@@ -163,7 +163,7 @@
                     if (!authChecked) {
                         authChecked = true;
                         document.getElementById('authCheckOverlay').classList.add('hidden');
-                        loadTanimliUrunler();
+                        loadSiparisUrunleri();
                         loadReceteler();
                     }
                 }, 3000);
@@ -171,7 +171,7 @@
             } catch (err) {
                 console.error("Init error:", err);
                 document.getElementById('authCheckOverlay').classList.add('hidden');
-                loadTanimliUrunler();
+                loadSiparisUrunleri();
                 loadReceteler();
             }
         }
@@ -180,21 +180,21 @@
             if (auth) { await signOut(auth); window.location.href = "index.html"; }
         });
 
-        // SADECE sistemde eklenmiş olan ana Ürün Tanımlarını (tanimli_urunler) Çekme
-        async function loadTanimliUrunler() {
+        // Urunler.html (siparis_urunleri) sayfasındaki kayıtlı ürünleri/reçeteleri çekme
+        async function loadSiparisUrunleri() {
             try {
-                const snap = await getDocs(collection(db, "tanimli_urunler"));
-                tanimliUrunlerCache = [];
+                const snap = await getDocs(collection(db, "siparis_urunleri"));
+                siparisUrunleriCache = [];
                 const selectElem = document.getElementById('selectAnaUrun');
-                selectElem.innerHTML = `<option value="">-- Ürün Tanımı Seçiniz --</option>`;
+                selectElem.innerHTML = `<option value="">-- Kayıtlı Ürün Reçetesi Seçiniz --</option>`;
 
                 snap.forEach(docSnap => {
                     const u = docSnap.data();
-                    tanimliUrunlerCache.push({ id: docSnap.id, ...u });
-                    selectElem.innerHTML += `<option value="${u.urunKodu}">${u.urunKodu} - ${u.urunTanimi}</option>`;
+                    siparisUrunleriCache.push({ id: docSnap.id, ...u });
+                    selectElem.innerHTML += `<option value="${docSnap.id}">${u.urunTanimi || 'İsimsiz Ürün'}</option>`;
                 });
             } catch (err) {
-                console.error("Tanımlı ürünler yüklenemedi:", err);
+                console.error("Sipariş ürünleri yüklenemedi:", err);
             }
         }
 
@@ -210,38 +210,26 @@
 
         document.getElementById('btnCloseModal').addEventListener('click', () => modal.classList.add('hidden'));
 
-        // Formül Satırlarında Malzeme Açılır Listesi (Yalnızca Ekli Ürün Tanımlarından Gelir)
-        function addFormulaRow(malzemeKodu = "", renk = "", formul = "") {
+        // Formül Satırları Ekleme
+        function addFormulaRow(malzemeAdi = "", formul = "") {
             const container = document.getElementById('formurRowsContainer');
             const rowId = 'row_' + Math.random().toString(36).substring(2, 9);
-
-            let optionsHtml = `<option value="">-- Ürün Tanımı Seç --</option>`;
-            tanimliUrunlerCache.forEach(u => {
-                let selected = (u.urunKodu === malzemeKodu) ? "selected" : "";
-                optionsHtml += `<option value="${u.urunKodu}" ${selected}>${u.urunKodu} - ${u.urunTanimi}</option>`;
-            });
 
             const rowHtml = `
                 <div id="${rowId}" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2 relative">
                     <div class="flex justify-between items-center">
-                        <span class="text-[9px] font-mono text-slate-400">Formül Kalemi</span>
+                        <span class="text-[9px] font-mono text-slate-400">Formül Satırı</span>
                         <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-400 hover:text-rose-300 text-[10px] px-1"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-2">
                         <div>
-                            <label class="text-[8px] text-slate-400 mb-0.5 block">Kullanılacak Malzeme/Ürün</label>
-                            <select class="row-malzeme w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500">
-                                ${optionsHtml}
-                            </select>
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Malzeme / Parça Adı</label>
+                            <input type="text" class="row-malzeme w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: Alüminyum Profil" value="${malzemeAdi}">
                         </div>
                         <div>
-                            <label class="text-[8px] text-slate-400 mb-0.5 block">Renk (Opsiyonel)</label>
-                            <input type="text" class="row-renk w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: BEYAZ" value="${renk}">
+                            <label class="text-[8px] text-slate-400 mb-0.5 block">Formül (EN, BOY, ADET kullanın)</label>
+                            <input type="text" class="row-formul w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-indigo-300 font-mono text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: EN - 2 veya (BOY * 2) + 10" value="${formul}">
                         </div>
-                    </div>
-                    <div>
-                        <label class="text-[8px] text-slate-400 mb-0.5 block">İmalat Formülü (EN, BOY, ADET ile işlem yazın)</label>
-                        <input type="text" class="row-formul w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-indigo-300 font-mono text-[10px] focus:outline-none focus:border-indigo-500" placeholder="Örn: EN - 2 veya (BOY * 2) + 10" value="${formul}">
                     </div>
                 </div>
             `;
@@ -251,13 +239,13 @@
         window.addFormulaRow = addFormulaRow;
         document.getElementById('btnAddRow').addEventListener('click', () => addFormulaRow());
 
-        // Kaydet / Güncelle (imalat_receteleri koleksiyonuna bağımsız kaydedilir)
+        // Kaydet / Güncelle
         document.getElementById('btnSaveRecete').addEventListener('click', async () => {
             const editId = document.getElementById('editReceteId').value.trim();
-            const anaUrunKodu = document.getElementById('selectAnaUrun').value;
+            const selectedUrunId = document.getElementById('selectAnaUrun').value;
 
-            if (!anaUrunKodu) {
-                alert("Lütfen ana ürün tanımını seçin!");
+            if (!selectedUrunId) {
+                alert("Lütfen ürünler sayfasından kayıtlı bir ürün seçin!");
                 return;
             }
 
@@ -265,41 +253,39 @@
             let receteKalemleri = [];
 
             rows.forEach(row => {
-                const malzemeKodu = row.querySelector('.row-malzeme').value;
-                const renk = row.querySelector('.row-renk').value.trim().toUpperCase();
+                const malzemeAdi = row.querySelector('.row-malzeme').value.trim();
                 const formul = row.querySelector('.row-formul').value.trim();
 
-                if (malzemeKodu && formul) {
+                if (malzemeAdi && formul) {
                     receteKalemleri.push({
-                        urunKodu: malzemeKodu,
-                        renk: renk,
+                        malzemeAdi: malzemeAdi,
                         formul: formul
                     });
                 }
             });
 
             if (receteKalemleri.length === 0) {
-                alert("Lütfen en az bir geçerli malzeme ve imalat formülü yazın!");
+                alert("Lütfen en az bir geçerli malzeme adı ve imalat formülü yazın!");
                 return;
             }
 
-            let anaUrunObj = tanimliUrunlerCache.find(u => u.urunKodu === anaUrunKodu);
-            let urunTanimi = anaUrunObj ? anaUrunObj.urunTanimi : anaUrunKodu;
-            let gorsel = anaUrunObj ? (anaUrunObj.gorsel || "") : "";
+            let secilenUrunObj = siparisUrunleriCache.find(u => u.id === selectedUrunId);
+            let urunTanimi = secilenUrunObj ? secilenUrunObj.urunTanimi : "Bilinmeyen Ürün";
+            let gorsel = secilenUrunObj ? (secilenUrunObj.gorsel || "") : "";
 
             try {
                 document.getElementById('btnSaveRecete').textContent = "Kaydediliyor...";
 
                 if (editId) {
                     await updateDoc(doc(db, "imalat_receteleri", editId), {
-                        urunKodu: anaUrunKodu,
+                        urunId: selectedUrunId,
                         urunTanimi: urunTanimi,
                         gorsel: gorsel,
                         recete: receteKalemleri
                     });
                 } else {
                     await addDoc(collection(db, "imalat_receteleri"), {
-                        urunKodu: anaUrunKodu,
+                        urunId: selectedUrunId,
                         urunTanimi: urunTanimi,
                         gorsel: gorsel,
                         recete: receteKalemleri,
@@ -346,13 +332,9 @@
                     let receteSatirlariHtml = "";
                     if (data.recete && Array.isArray(data.recete)) {
                         data.recete.forEach(r => {
-                            let renkBadge = r.renk ? `<span class="bg-purple-500/10 text-purple-400 px-1 py-0.5 rounded text-[8px]">${r.renk}</span>` : `<span class="text-slate-500 text-[8px]">Tüm Renkler</span>`;
                             receteSatirlariHtml += `
                                 <div class="bg-slate-950 border border-slate-800/80 p-1.5 rounded-lg flex justify-between items-center text-[9px] font-mono">
-                                    <div>
-                                        <span class="text-indigo-400 font-bold">${r.urunKodu}</span>
-                                        <span class="text-slate-400 ml-1">(${renkBadge})</span>
-                                    </div>
+                                    <span class="text-indigo-400 font-bold">${r.malzemeAdi}</span>
                                     <span class="text-emerald-400 font-bold">${r.formul}</span>
                                 </div>
                             `;
@@ -367,7 +349,6 @@
                                         ${data.gorsel ? `<img src="${data.gorsel}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-slate-600 text-xs"></i>`}
                                     </div>
                                     <div class="min-w-0">
-                                        <span class="text-[9px] font-mono text-indigo-400 font-semibold">${data.urunKodu || ''}</span>
                                         <h4 class="text-xs font-bold text-slate-100 truncate">${data.urunTanimi}</h4>
                                     </div>
                                 </div>
@@ -398,14 +379,14 @@
 
             document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-400"></i> İmalat Reçetesini Düzenle`;
             document.getElementById('editReceteId').value = id;
-            document.getElementById('selectAnaUrun').value = data.urunKodu || "";
+            document.getElementById('selectAnaUrun').value = data.urunId || "";
             
             const container = document.getElementById('formurRowsContainer');
             container.innerHTML = "";
 
             if (data.recete && Array.isArray(data.recete)) {
                 data.recete.forEach(r => {
-                    addFormulaRow(r.urunKodu, r.renk, r.formul);
+                    addFormulaRow(r.malzemeAdi, r.formul);
                 });
             }
 
